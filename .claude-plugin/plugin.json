@@ -1,0 +1,10 @@
+{
+  "name": "loopcraft",
+  "displayName": "Loopcraft",
+  "description": "Loop engineering for Claude Code — rubric+verifier self-correction, 5-stage memory protocol (fail→investigate→verify→distill→consult), autonomous backlog runner",
+  "version": "0.1.0",
+  "author": { "name": "Johan Kim" },
+  "license": "MIT",
+  "keywords": ["loop-engineering", "memory", "verifier"],
+  "hooks": "./hooks/hooks.json"
+}
