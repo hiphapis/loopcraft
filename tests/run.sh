@@ -209,6 +209,17 @@ session_start_writes_head() {
     assert_eq "$expected" "$actual" "session-start records HEAD sha"
 }
 
+session_start_pretty_json_writes_head() {
+  local repo expected actual input
+  repo="$(setup_repo)"
+  expected="$(git -C "$repo" rev-parse HEAD)"
+  input="$(printf '{\n  "session_id": "s9",\n  "stop_hook_active": true\n}\n')"
+  run_hook "$SESSION_START" "$repo" "$input"
+  actual="$(cat "$repo/.loop/state/session/s9.head")"
+  assert_eq 0 "$CAPTURE_STATUS" "session-start exits 0 with pretty JSON" &&
+    assert_eq "$expected" "$actual" "session-start parses session_id from pretty JSON"
+}
+
 session_start_non_git_no_crash() {
   local dir
   dir="$(new_tmp_dir)"
@@ -237,6 +248,15 @@ stop_gate_stop_hook_active() {
   run_hook "$STOP_GATE" "$repo" '{"session_id":"s1","stop_hook_active":true}'
   assert_eq 0 "$CAPTURE_STATUS" "stop-gate exits 0 when stop_hook_active" &&
     assert_eq "" "$CAPTURE_OUT" "stop-gate is silent when stop_hook_active"
+}
+
+stop_gate_pretty_json_stop_hook_active() {
+  local repo input
+  repo="$(setup_repo)"
+  input="$(printf '{\n  "session_id": "s9",\n  "stop_hook_active": true\n}\n')"
+  run_hook "$STOP_GATE" "$repo" "$input"
+  assert_eq 0 "$CAPTURE_STATUS" "stop-gate exits 0 when pretty JSON stop_hook_active" &&
+    assert_eq "" "$CAPTURE_OUT" "stop-gate is silent when pretty JSON stop_hook_active"
 }
 
 stop_gate_current_task_blocks_once_and_marks_warned() {
@@ -404,9 +424,11 @@ test_case "session-start: INDEX and STATE are included" session_start_includes_i
 test_case "session-start: LEDGER open failures warn" session_start_ledger_open_failures
 test_case "session-start: distilled-only LEDGER does not warn" session_start_ledger_distilled_only
 test_case "session-start: writes HEAD sha" session_start_writes_head
+test_case "session-start: pretty JSON writes HEAD sha" session_start_pretty_json_writes_head
 test_case "session-start: non-git directory does not crash" session_start_non_git_no_crash
 test_case "session-start: sanitizes malicious session_id" session_start_sanitizes_session_id
 test_case "stop-gate: stop_hook_active exits silently" stop_gate_stop_hook_active
+test_case "stop-gate: pretty JSON stop_hook_active exits silently" stop_gate_pretty_json_stop_hook_active
 test_case "stop-gate: current-task blocks once and marks warned" stop_gate_current_task_blocks_once_and_marks_warned
 test_case "stop-gate: warned marker allows exit" stop_gate_warned_marker_allows_exit
 test_case "stop-gate: worktree code without STATE blocks" stop_gate_worktree_code_without_state_blocks
