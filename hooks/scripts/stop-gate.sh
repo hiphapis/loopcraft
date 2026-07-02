@@ -8,7 +8,7 @@ ROOT="${CLAUDE_PROJECT_DIR:-$(pwd)}"
 LOOP_DIR="$ROOT/.loop"
 [ -d "$LOOP_DIR/memory" ] || exit 0
 
-INPUT="$(cat)"
+INPUT="$(cat | tr '\n\t' '  ')"
 # stop hook이 이미 진행시킨 턴이면 재차단 금지
 printf '%s' "$INPUT" | grep -q '"stop_hook_active"[[:space:]]*:[[:space:]]*true' && exit 0
 
@@ -40,7 +40,7 @@ if [ -f "$HEAD_FILE" ]; then
   BASE="$(cat "$HEAD_FILE")"
   COMMITTED="$(git -C "$ROOT" diff --name-only "$BASE"..HEAD 2>/dev/null || true)"
 fi
-DIRTY="$(git -C "$ROOT" status --porcelain -uall 2>/dev/null | sed -n 's/^.. //p')"
+DIRTY="$(git -C "$ROOT" status --porcelain -uall 2>/dev/null | sed -n 's/^.. //p' || true)"
 CHANGED="$(printf '%s\n%s\n' "$COMMITTED" "$DIRTY")"
 
 CODE_CHANGED="$(printf '%s\n' "$CHANGED" | grep -vE '^$|^\.loop/|^docs/|\.md$|\.txt$' || true)"

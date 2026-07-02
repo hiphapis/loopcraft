@@ -8,7 +8,7 @@ ROOT="${CLAUDE_PROJECT_DIR:-$(pwd)}"
 LOOP_DIR="$ROOT/.loop"
 [ -d "$LOOP_DIR/memory" ] || exit 0
 
-INPUT="$(cat)"
+INPUT="$(cat | tr '\n\t' '  ')"
 SESSION_ID="$(printf '%s' "$INPUT" | sed -nE 's/.*"session_id"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/p')"
 SESSION_ID="${SESSION_ID//[^A-Za-z0-9._-]/}"
 SESSION_ID="${SESSION_ID:-unknown}"
