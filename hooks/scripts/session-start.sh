@@ -10,6 +10,7 @@ LOOP_DIR="$ROOT/.loop"
 
 INPUT="$(cat)"
 SESSION_ID="$(printf '%s' "$INPUT" | sed -nE 's/.*"session_id"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/p')"
+SESSION_ID="${SESSION_ID//[^A-Za-z0-9._-]/}"
 SESSION_ID="${SESSION_ID:-unknown}"
 
 # 세션 기준점 기록 — stop-gate가 "이 세션의 코드 변경" 판단에 사용

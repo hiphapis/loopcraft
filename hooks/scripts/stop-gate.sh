@@ -13,6 +13,7 @@ INPUT="$(cat)"
 printf '%s' "$INPUT" | grep -q '"stop_hook_active"[[:space:]]*:[[:space:]]*true' && exit 0
 
 SESSION_ID="$(printf '%s' "$INPUT" | sed -nE 's/.*"session_id"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/p')"
+SESSION_ID="${SESSION_ID//[^A-Za-z0-9._-]/}"
 SESSION_ID="${SESSION_ID:-unknown}"
 WARNED="$LOOP_DIR/state/session/$SESSION_ID.warned"
 
@@ -39,7 +40,7 @@ if [ -f "$HEAD_FILE" ]; then
   BASE="$(cat "$HEAD_FILE")"
   COMMITTED="$(git -C "$ROOT" diff --name-only "$BASE"..HEAD 2>/dev/null || true)"
 fi
-DIRTY="$(git -C "$ROOT" status --porcelain 2>/dev/null | awk '{print $NF}')"
+DIRTY="$(git -C "$ROOT" status --porcelain -uall 2>/dev/null | sed -n 's/^.. //p')"
 CHANGED="$(printf '%s\n%s\n' "$COMMITTED" "$DIRTY")"
 
 CODE_CHANGED="$(printf '%s\n' "$CHANGED" | grep -vE '^$|^\.loop/|^docs/|\.md$|\.txt$' || true)"
