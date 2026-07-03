@@ -46,14 +46,14 @@ verifier의 Verdict에서 `결과:` 줄을 읽는다.
 
 - **FAIL** → "FAIL 사유 요약"만 근거로 수정하고 4로 돌아간다. 최대 `maxRetries`회(기본 3).
   초과 시 **에스컬레이션**: 마지막 Verdict를 사용자에게 보여주고 판단을 요청한다.
-  중단하는 경우 STATE.md에 에스컬레이션 사유를 기록하고 마커를 삭제한다.
-- **채점 불가 기준이 보고되면** → 작업과 별개로 rubric 개정이 필요하다는 뜻.
+  중단하는 경우 .loop/memory/STATE.md에 에스컬레이션 사유를 기록하고 마커를 삭제한다.
+- **Verdict의 '채점 불가 기준' 줄에 항목이 있으면** → 작업과 별개로 rubric 개정이 필요하다는 뜻.
   완료 보고에 포함하고, `.loop/rubrics/<이름>.md` 수정을 제안한다 (스펙 §6).
 - **PASS** → 6으로.
 
 ## 6. 게이트 → 커밋 → 정리
 
-1. 게이트 실행(rubric frontmatter `gates` 우선, 없으면 config 전역). green 필수.
+1. 게이트 실행(rubric frontmatter `gates` 우선, 없으면 config 전역). green 필수. 게이트가 fail이면 verifier FAIL과 동일하게 취급한다 — 수정 후 §4 재채점으로 돌아가며(재시도 카운트 공유), 마커는 유지한다.
 2. 커밋 — 메시지 말미에 트레일러 추가:
    ```
    Loop-Verified: <pass>/<total>
