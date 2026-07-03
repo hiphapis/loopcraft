@@ -2,7 +2,7 @@
   "name": "loopcraft",
   "displayName": "Loopcraft",
   "description": "Loop engineering for Claude Code — rubric+verifier self-correction, 5-stage memory protocol (fail→investigate→verify→distill→consult), autonomous backlog runner",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": { "name": "Johan Kim", "url": "https://github.com/hiphapis" },
   "homepage": "https://github.com/hiphapis/loopcraft",
   "repository": "https://github.com/hiphapis/loopcraft",

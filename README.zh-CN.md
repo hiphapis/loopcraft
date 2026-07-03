@@ -6,7 +6,7 @@
 
 灵感来自 Lance Martin 的 loop engineering 与 Andrej Karpathy 的 LLM Wiki 模式：自我改进是*系统*的属性，而非模型的属性。Loopcraft 把这个系统做成了可安装的插件。
 
-## 功能一览 (Phase 1 — Memory)
+## 功能一览 (Phase 1 + 2)
 
 | 组件 | 作用 |
 |-----------|--------------|
@@ -15,6 +15,9 @@
 | **PreCompact 钩子** | 在上下文压缩之前，提醒模型先把进度写入 `STATE.md`，避免信息在摘要中丢失。 |
 | **`/loopcraft:distill` 技能** | 把失败转化为知识的五阶段协议：**Fail → Investigate → Verify → Distill → Consult**。失败会变成 vault 中*经过验证的*通用规则 — 优先合并进已有笔记，绝不重复。 |
 | **Obsidian 兼容 vault** | `.loop/memory/` 是带 YAML frontmatter 和 `[[双链]]` 的纯 Markdown。用 Obsidian 打开即可观察知识图谱的生长。不依赖任何应用 — 循环只需要文件。 |
+| **`verifier` 子代理** | 根据你的评分标准（rubric）独立对产出打分的评估者。只看产出和标准，不看 maker 的推理过程。完全阻断 maker 的主观偏差。 |
+| **`/loopcraft:loop-task` 技能** | Maker → verifier → 重试 → 门禁 → 提交的循环：提交任务说明，收到 verifier 的判定摘要，合格时自动在提交 trailer 中记录 `Loop-Verified: n/m`。留下审计证迹。 |
+| **`/loopcraft:loop-init` 技能** | 扫描仓库并与你面谈，用已配置的门禁和 rubric 初案自动搭建 `.loop/`。一条命令完成项目引导。 |
 
 零运行时依赖：`bash + git + grep/sed/awk`。逃生口：设置 `LOOP_DISABLE=1` 可禁用所有钩子。
 
@@ -36,10 +39,22 @@ claude --plugin-dir ./loopcraft
 
 ## 项目初始化
 
-在 Phase 2 的 `/loop-init` 发布之前，需要手动搭建 `.loop/` — 在仓库根目录执行一次：
+**推荐：使用 `/loopcraft:loop-init`**
+
+在仓库根目录执行：
+
+```
+/loopcraft:loop-init
+```
+
+该技能会扫描项目结构，与你面谈有关门禁和评分标准的问题，然后自动生成配置好的 `.loop/config.json` 和 `.loop/rubrics/` 的初案。无需手动编辑。
+
+### 手动初始化（可选）
+
+如果更喜欢手动搭建 `.loop/`，在仓库根目录执行一次：
 
 ```bash
-mkdir -p .loop/memory/notes
+mkdir -p .loop/memory/notes .loop/rubrics
 cat > .loop/config.json <<'EOF'
 {
   "gates": ["npm run typecheck", "npm run lint", "npm test"],
@@ -69,6 +84,14 @@ printf '.loop/journal/\n.loop/state/\n' >> .gitignore
 
 该技能会引导完成：记入台账 → 调查原因 → **通过复现或反证来验证诊断** → 蒸馏为通用规则（frontmatter 的 `verified: true/false` 区分假设与事实）→ 链接进 vault。
 
+**需要审计证迹的工作** — 用 loop-task 通过 verifier 和门禁：
+
+```
+/loopcraft:loop-task 重构 migration 净化逻辑以消除 SQL 注入漏洞
+```
+
+技能会提交任务，等待 verifier 的判定摘要，合格时在提交 trailer 中记录 `Loop-Verified: n/m`。评分标准存放在 `.loop/rubrics/`，每个标准都需要明确声明验证方法和通过条件。
+
 **结束会话时** — 如果改了代码却没更新 `STATE.md`，Stop 门禁会阻止一次并告诉你该记录什么。更新 STATE 后干净地结束，下一个会话就能从同一个位置无缝继续。
 
 **观察成长** — 用 Obsidian 打开 `.loop/memory/` 查看图谱视图，或者：
@@ -95,8 +118,8 @@ git log --oneline -- .loop/memory/   # 循环在何时学到了什么
 
 ## 路线图
 
-- **Phase 1 — Memory**（当前版本）：钩子、蒸馏协议、vault。
-- **Phase 2 — Self-correction**：可验证的评分标准（rubric）、不看 maker 推理过程、只对产出打分的独立 verifier 子代理、`/loop-task` 自我纠正循环、`/loop-init` 引导式初始化。
+- **Phase 1 — Memory** ✅：钩子、蒸馏协议、vault。
+- **Phase 2 — Self-correction**（当前版本）：可验证的评分标准（rubric）、不看 maker 推理过程、只对产出打分的独立 verifier 子代理、`/loop-task` 自我纠正循环、`/loop-init` 引导式初始化。
 - **Phase 3 — 自主运行器**：`/loop-run` 无人值守地遍历 backlog — 工作 → 验证 → 门禁 → 提交 → 蒸馏。提交只到 worktree 为止，合并到 main 永远由人决定。
 
 ## 环境要求
@@ -107,7 +130,7 @@ git log --oneline -- .loop/memory/   # 循环在何时学到了什么
 ## 测试
 
 ```bash
-./tests/run.sh   # 24 个用例：钩子契约、输入净化、边界情况
+./tests/run.sh   # 26 个用例：钩子契约、输入净化、边界情况
 ```
 
 ## 许可证
