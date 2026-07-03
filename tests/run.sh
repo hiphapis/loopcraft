@@ -271,6 +271,45 @@ stop_gate_current_task_blocks_once_and_marks_warned() {
     assert_file_exists "$repo/.loop/state/session/s1.warned" "warned marker is created"
 }
 
+stop_gate_block_output_is_valid_json() {
+  local repo first_line
+  repo="$(setup_repo)"
+  mkdir -p "$repo/.loop/state"
+  printf 'task\n' > "$repo/.loop/state/current-task"
+  run_hook "$STOP_GATE" "$repo" '{"session_id":"s1"}'
+  first_line="$(printf '%s\n' "$CAPTURE_OUT" | sed -n '1p')"
+  assert_eq 0 "$CAPTURE_STATUS" "stop-gate exits 0 when block emits JSON" &&
+    assert_contains "$first_line" '"decision":"block"' "block JSON contains decision" &&
+    assert_contains "$first_line" '"reason":"' "block JSON contains reason" || return 1
+  if command -v python3 >/dev/null 2>&1; then
+    JSON_INPUT="$first_line" python3 -c 'import json, os; obj = json.loads(os.environ["JSON_INPUT"]); assert obj["decision"] == "block"; assert isinstance(obj["reason"], str)' || {
+      printf 'block output first line is not valid JSON: [%s]\n' "$first_line"
+      return 1
+    }
+  else
+    printf '%s\n' "$first_line" | grep -Eq '^\{"decision":"block","reason":"[^"]*"\}$' || {
+      printf 'block output first line does not match JSON fallback pattern: [%s]\n' "$first_line"
+      return 1
+    }
+  fi
+}
+
+stop_gate_json_escape_escapes_quote_and_backslash() {
+  local repo funcs actual expected
+  repo="$(setup_repo)"
+  funcs="$repo/json_escape.sh"
+  sed -n '/^json_escape()/p' "$STOP_GATE" > "$funcs"
+  grep -q '^json_escape()' "$funcs" || {
+    printf 'json_escape function definition was not extracted\n'
+    return 1
+  }
+  # shellcheck disable=SC1090
+  . "$funcs"
+  actual="$(json_escape 'a"b\c')"
+  expected=$'a\\"b\\\\c'
+  assert_eq "$expected" "$actual" "json_escape escapes quotes and backslashes"
+}
+
 stop_gate_warned_marker_allows_exit() {
   local repo
   repo="$(setup_repo)"
@@ -430,6 +469,8 @@ test_case "session-start: sanitizes malicious session_id" session_start_sanitize
 test_case "stop-gate: stop_hook_active exits silently" stop_gate_stop_hook_active
 test_case "stop-gate: pretty JSON stop_hook_active exits silently" stop_gate_pretty_json_stop_hook_active
 test_case "stop-gate: current-task blocks once and marks warned" stop_gate_current_task_blocks_once_and_marks_warned
+test_case "stop-gate: block output first line is valid JSON" stop_gate_block_output_is_valid_json
+test_case "stop-gate: json_escape escapes quotes and backslashes" stop_gate_json_escape_escapes_quote_and_backslash
 test_case "stop-gate: warned marker allows exit" stop_gate_warned_marker_allows_exit
 test_case "stop-gate: worktree code without STATE blocks" stop_gate_worktree_code_without_state_blocks
 test_case "stop-gate: worktree code with STATE passes" stop_gate_worktree_code_with_state_passes
