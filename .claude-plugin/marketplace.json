@@ -1,0 +1,12 @@
+{
+  "name": "loopcraft",
+  "description": "Loop engineering plugin for Claude Code — memory that survives sessions, self-correction loops, failure distillation",
+  "owner": { "name": "Johan Kim", "url": "https://github.com/hiphapis" },
+  "plugins": [
+    {
+      "name": "loopcraft",
+      "source": "./",
+      "description": "Loop engineering for Claude Code — persistent memory vault, self-correction hooks, and a 5-stage failure-to-knowledge distillation protocol"
+    }
+  ]
+}
