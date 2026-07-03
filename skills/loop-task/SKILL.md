@@ -44,7 +44,7 @@ verifier의 Verdict에서 `결과:` 줄을 읽는다.
 
 ## 5. 판정 처리
 
-- **FAIL** → "FAIL 사유 요약"만 근거로 수정하고 4로 돌아간다. 최대 `maxRetries`회(기본 3).
+- **FAIL** → "FAIL 사유 요약"만 근거로 수정하고 4로 돌아간다. 재시도 상한은 rubric frontmatter `max_retries`가 있으면 그 값, 없으면 config `maxRetries`(기본 3).
   초과 시 **에스컬레이션**: 마지막 Verdict를 사용자에게 보여주고 판단을 요청한다.
   중단하는 경우 .loop/memory/STATE.md에 에스컬레이션 사유를 기록하고 마커를 삭제한다.
 - **Verdict의 '채점 불가 기준' 줄에 항목이 있으면** → 작업과 별개로 rubric 개정이 필요하다는 뜻.
