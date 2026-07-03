@@ -387,6 +387,7 @@ stop_gate_space_filename_blocks() {
   base="$(git -C "$repo" rev-parse HEAD)"
   mkdir -p "$repo/.loop/state/session"
   printf '%s\n' "$base" > "$repo/.loop/state/session/s1.head"
+  : > "$repo/.loop/state/session/s1.untracked"
   printf 'space file\n' > "$repo/my file.ts"
   run_hook "$STOP_GATE" "$repo" '{"session_id":"s1"}'
   assert_eq 0 "$CAPTURE_STATUS" "stop-gate exits 0 when blocking filename with spaces" &&
@@ -407,11 +408,38 @@ stop_gate_untracked_state_allows_code_change() {
   base="$(git -C "$repo" rev-parse HEAD)"
   mkdir -p "$repo/.loop/state/session"
   printf '%s\n' "$base" > "$repo/.loop/state/session/s1.head"
+  : > "$repo/.loop/state/session/s1.untracked"
   printf 'changed app\n' > "$repo/app.ts"
   printf 'new state\n' > "$repo/.loop/memory/STATE.md"
   run_hook "$STOP_GATE" "$repo" '{"session_id":"s1"}'
   assert_eq 0 "$CAPTURE_STATUS" "stop-gate exits 0 when STATE is untracked and present" &&
     assert_eq "" "$CAPTURE_OUT" "untracked STATE.md satisfies STATE update check"
+}
+
+stop_gate_existing_untracked_code_in_baseline_passes() {
+  local repo base
+  repo="$(setup_repo)"
+  base="$(git -C "$repo" rev-parse HEAD)"
+  mkdir -p "$repo/.loop/state/session"
+  printf 'existing untracked\n' > "$repo/existing.ts"
+  printf '%s\n' "$base" > "$repo/.loop/state/session/s1.head"
+  printf 'existing.ts\n' > "$repo/.loop/state/session/s1.untracked"
+  run_hook "$STOP_GATE" "$repo" '{"session_id":"s1"}'
+  assert_eq 0 "$CAPTURE_STATUS" "stop-gate exits 0 with baseline untracked code only" &&
+    assert_eq "" "$CAPTURE_OUT" "baseline untracked code does not false-block"
+}
+
+stop_gate_new_untracked_code_without_state_blocks() {
+  local repo base
+  repo="$(setup_repo)"
+  base="$(git -C "$repo" rev-parse HEAD)"
+  mkdir -p "$repo/.loop/state/session"
+  printf '%s\n' "$base" > "$repo/.loop/state/session/s1.head"
+  : > "$repo/.loop/state/session/s1.untracked"
+  printf 'new untracked\n' > "$repo/new-file.ts"
+  run_hook "$STOP_GATE" "$repo" '{"session_id":"s1"}'
+  assert_eq 0 "$CAPTURE_STATUS" "stop-gate exits 0 when blocking new untracked code" &&
+    assert_contains "$CAPTURE_OUT" '"decision":"block"' "new untracked code without STATE is blocked"
 }
 
 stop_gate_sanitizes_session_id() {
@@ -479,6 +507,8 @@ test_case "stop-gate: missing head and clean tree pass" stop_gate_missing_head_c
 test_case "stop-gate: committed code without STATE blocks" stop_gate_committed_code_without_state_blocks
 test_case "stop-gate: filename with spaces is detected" stop_gate_space_filename_blocks
 test_case "stop-gate: untracked STATE allows code change" stop_gate_untracked_state_allows_code_change
+test_case "stop-gate: baseline untracked code does not block" stop_gate_existing_untracked_code_in_baseline_passes
+test_case "stop-gate: new untracked code without STATE blocks" stop_gate_new_untracked_code_without_state_blocks
 test_case "stop-gate: sanitizes malicious session_id" stop_gate_sanitizes_session_id
 test_case "pre-compact: emits valid JSON with additionalContext" pre_compact_json_context
 test_case "pre-compact: no .loop is silent" pre_compact_no_loop_silent
