@@ -6,7 +6,7 @@ Loop engineering plugin for [Claude Code](https://claude.com/claude-code) — in
 
 Inspired by Lance Martin's loop engineering work and Andrej Karpathy's LLM Wiki pattern: self-improvement is a property of the *system*, not the model. Loopcraft builds that system as an installable plugin.
 
-## What you get (Phase 1 + 2)
+## What you get
 
 | Component | What it does |
 |-----------|--------------|
@@ -18,6 +18,7 @@ Inspired by Lance Martin's loop engineering work and Andrej Karpathy's LLM Wiki 
 | **`verifier` subagent** | An independent grader that scores your work against a rubric — seeing only the output and criteria, not your reasoning. Prevents maker bias from clouding judgment. |
 | **`/loopcraft:loop-task` skill** | Maker → verifier → retry → gate → commit cycle: submit a task description, get a verdict summary, then automatically stamp `Loop-Verified: n/m` in the commit trailer for audited work. |
 | **`/loopcraft:loop-init` skill** | Scans your repo and interviews you to scaffold `.loop/` with configured gates and a rubric starter. One-command project onboarding. |
+| **`/loopcraft:loop-run` skill** | Autonomously traverses your backlog unattended — selects items, runs loop-task cycles, gates them, and commits all work to a worktree. All commits stay in the worktree; merging to main always remains your call — the system only executes, it never pushes to the repo. |
 
 Zero runtime dependencies: `bash + git + grep/sed/awk`. Escape hatch: set `LOOP_DISABLE=1` to disable all hooks.
 
@@ -94,6 +95,14 @@ The skill submits the task, waits for the verifier's verdict summary, and on pas
 
 **Ending a session** — if you changed code but didn't update `STATE.md`, the Stop gate blocks once and tells you what to write down. Update STATE, end cleanly, and the next session picks up exactly where you left off.
 
+**Autonomous backlog runner** — let the system work overnight:
+
+```
+/loopcraft:loop-run 3
+```
+
+This launches a background session that autonomously picks backlog items, runs loop-task cycles, gates them, and commits to a worktree. You wake up to run journals (`.loop/journal/run-*.md`) and Loop-Verified commits ready for review — cherry-pick what you like into main, discard the rest. The system never merges; all human gatekeeping stays intact.
+
 **Watching it grow** — open `.loop/memory/` in Obsidian for the graph view, or:
 
 ```bash
@@ -119,8 +128,8 @@ Note frontmatter: `title / tags / category (debugging|pattern|environment|decisi
 ## Roadmap
 
 - **Phase 1 — Memory** ✅: hooks, distill protocol, vault.
-- **Phase 2 — Self-correction** (this release): verifiable rubrics, an independent verifier subagent that grades outputs without seeing the maker's reasoning, `/loop-task` self-correction cycles, `/loop-init` onboarding interview.
-- **Phase 3 — Autonomous runner**: `/loop-run` iterates a backlog unattended — work → verify → gate → commit → distill — commits stay in a worktree; merging to main always requires a human.
+- **Phase 2 — Self-correction** ✅: verifiable rubrics, an independent verifier subagent that grades outputs without seeing the maker's reasoning, `/loop-task` self-correction cycles, `/loop-init` onboarding interview.
+- **Phase 3 — Autonomous runner** (this release): `/loop-run` iterates a backlog unattended — work → verify → gate → commit → distill — commits stay in a worktree; merging to main always requires a human.
 
 ## Requirements
 

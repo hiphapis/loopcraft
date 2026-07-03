@@ -6,7 +6,7 @@
 
 Lance Martin의 loop engineering과 Andrej Karpathy의 LLM Wiki 패턴에서 영감을 받았습니다: 자기개선은 모델이 아니라 *시스템*의 속성입니다. Loopcraft는 그 시스템을 설치 가능한 플러그인으로 만듭니다.
 
-## 제공 기능 (Phase 1 + 2)
+## 제공 기능
 
 | 구성요소 | 역할 |
 |-----------|--------------|
@@ -18,6 +18,7 @@ Lance Martin의 loop engineering과 Andrej Karpathy의 LLM Wiki 패턴에서 영
 | **`verifier` 서브에이전트** | 당신의 rubric에 따라 산출물을 독립적으로 채점하는 심사자입니다. maker의 추론은 보지 않고 결과물과 기준만 봅니다. maker 바이어스를 원천 차단합니다. |
 | **`/loopcraft:loop-task` 스킬** | Maker → verifier → 재시도 → 게이트 → 커밋 순환: 작업 설명을 제출하면 판정 요약을 받고, 통과 시 커밋 트레일러에 `Loop-Verified: n/m`을 자동 기록합니다. 감사 추적이 남는 작업입니다. |
 | **`/loopcraft:loop-init` 스킬** | 리포를 스캔하고 당신과 인터뷰해서 `.loop/`를 설정된 게이트와 rubric 초안으로 스캐폴딩합니다. 한 명령으로 프로젝트 온보딩 완료. |
+| **`/loopcraft:loop-run` 스킬** | backlog를 무인으로 순회 — 항목 선별, loop-task 사이클 실행, 게이트 통과, 커밋을 모두 자동화합니다. 모든 커밋은 워크트리까지만, main 병합은 항상 당신의 결정입니다 — 시스템은 실행만 하고 절대 리포에 푸시하지 않습니다. |
 
 런타임 의존성 제로: `bash + git + grep/sed/awk`. 탈출구: `LOOP_DISABLE=1`로 모든 hook 무력화.
 
@@ -94,6 +95,14 @@ printf '.loop/journal/\n.loop/state/\n' >> .gitignore
 
 **세션을 끝낼 때** — 코드를 바꿨는데 `STATE.md`를 갱신하지 않았으면 Stop gate가 1회 차단하며 무엇을 기록할지 알려줍니다. STATE를 갱신하고 깔끔하게 끝내면, 다음 세션이 정확히 그 지점에서 이어집니다.
 
+**자율 backlog 순회** — 시스템이 밤새 일하도록 맡기세요:
+
+```
+/loopcraft:loop-run 3
+```
+
+백그라운드 세션에서 backlog 항목을 자동으로 선별해 loop-task 사이클을 실행하고, 게이트 통과 후 워크트리에 커밋합니다. 아침에 실행 저널(`.loop/journal/run-*.md`)과 Loop-Verified 커밋을 검토해서 마음에 드는 것만 main에 cherry-pick하거나 나머지는 버립니다. 시스템은 절대 병합하지 않고, 모든 인간의 게이트키핑이 그대로 유지됩니다.
+
 **성장 관찰** — Obsidian으로 `.loop/memory/`를 열어 그래프 뷰를 보거나:
 
 ```bash
@@ -119,8 +128,8 @@ git log --oneline -- .loop/memory/   # 루프가 언제 무엇을 배웠는지
 ## 로드맵
 
 - **Phase 1 — Memory** ✅: hooks, 증류 프로토콜, vault.
-- **Phase 2 — Self-correction** (현재 릴리스): 검증 가능한 rubric, maker의 추론을 보지 않고 산출물만 채점하는 독립 verifier 서브에이전트, `/loop-task` 자기교정 사이클, `/loop-init` 온보딩 인터뷰.
-- **Phase 3 — 자율 러너**: `/loop-run`이 backlog를 무인 순회 — 작업 → 검증 → 게이트 → 커밋 → 증류. 커밋은 워크트리까지만, main 병합은 항상 사람이 결정합니다.
+- **Phase 2 — Self-correction** ✅: 검증 가능한 rubric, maker의 추론을 보지 않고 산출물만 채점하는 독립 verifier 서브에이전트, `/loop-task` 자기교정 사이클, `/loop-init` 온보딩 인터뷰.
+- **Phase 3 — 자율 러너** (현재 릴리스): `/loop-run`이 backlog를 무인 순회 — 작업 → 검증 → 게이트 → 커밋 → 증류. 커밋은 워크트리까지만, main 병합은 항상 사람이 결정합니다.
 
 ## 요구사항
 

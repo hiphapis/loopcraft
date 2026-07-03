@@ -6,7 +6,7 @@
 
 Lance Martin の loop engineering と Andrej Karpathy の LLM Wiki パターンに着想を得ています: 自己改善はモデルではなく*システム*の性質です。Loopcraft はそのシステムをインストール可能なプラグインとして提供します。
 
-## 提供機能 (Phase 1 + 2)
+## 提供機能
 
 | コンポーネント | 役割 |
 |-----------|--------------|
@@ -18,6 +18,7 @@ Lance Martin の loop engineering と Andrej Karpathy の LLM Wiki パターン�
 | **`verifier` サブエージェント** | あなたのルーブリックに基づいて、成果物を独立して採点する評価者です。maker の推論は見ず、産出物と基準だけを見ます。maker のバイアスを完全に遮断します。 |
 | **`/loopcraft:loop-task` スキル** | Maker → verifier → 再試行 → ゲート → コミットの循環：タスクの説明を提出すると、verifier の判定サマリを受け取り、合格時はコミット trailerに `Loop-Verified: n/m` を自動記録します。監査証跡が残る作業です。 |
 | **`/loopcraft:loop-init` スキル** | リポジトリをスキャンし、あなたにインタビューして `.loop/` を設定済みゲートとルーブリック初案でスキャフォールドします。1 つのコマンドでプロジェクトオンボーディング完了。 |
+| **`/loopcraft:loop-run` スキル** | バックログを無人で巡回 — 項目の選別、loop-task サイクルの実行、ゲート通過、コミットをすべて自動化します。すべてのコミットは worktree まで、main へのマージは常にあなたの判断です — システムは実行するだけで、絶対にリポジトリには푸시しません。 |
 
 ランタイム依存ゼロ: `bash + git + grep/sed/awk`。エスケープハッチ: `LOOP_DISABLE=1` で全フックを無効化。
 
@@ -94,6 +95,14 @@ printf '.loop/journal/\n.loop/state/\n' >> .gitignore
 
 **セッションを終えるとき** — コードを変更したのに `STATE.md` を更新していなければ、Stop ゲートが一度ブロックし、何を書き残すべきか教えてくれます。STATE を更新してきれいに終えれば、次のセッションはちょうどその地点から再開します。
 
+**自律バックログ巡回** — システムに夜間の仕事を任せます：
+
+```
+/loopcraft:loop-run 3
+```
+
+バックグラウンドセッションでバックログアイテムを自動選別し、loop-task サイクルを実行、ゲート通過後に worktree にコミットします。朝に実行ジャーナル（`.loop/journal/run-*.md`）と Loop-Verified コミットをレビューし、気に入ったものだけ main に cherry-pick するか、残りは破棄します。システムは絶対にマージしない — すべての人間による門番の役割は完全に保持されます。
+
 **成長の観察** — Obsidian で `.loop/memory/` を開いてグラフビューを見るか:
 
 ```bash
@@ -119,8 +128,8 @@ git log --oneline -- .loop/memory/   # ループがいつ何を学んだか
 ## ロードマップ
 
 - **Phase 1 — Memory** ✅: フック、蒸留プロトコル、vault。
-- **Phase 2 — Self-correction**（本リリース）: 検証可能なルーブリック、maker の推論を見ずに成果物だけを採点する独立 verifier サブエージェント、`/loop-task` 自己修正サイクル、`/loop-init` オンボーディング・インタビュー。
-- **Phase 3 — 自律ランナー**: `/loop-run` がバックログを無人で巡回 — 作業 → 検証 → ゲート → コミット → 蒸留。コミットは worktree まで、main へのマージは常に人間が決定します。
+- **Phase 2 — Self-correction** ✅: 検証可能なルーブリック、maker の推論を見ずに成果物だけを採点する独立 verifier サブエージェント、`/loop-task` 自己修正サイクル、`/loop-init` オンボーディング・インタビュー。
+- **Phase 3 — 自律ランナー**（本リリース）: `/loop-run` がバックログを無人で巡回 — 作業 → 検証 → ゲート → コミット → 蒸留。コミットは worktree まで、main へのマージは常に人間が決定します。
 
 ## 要件
 

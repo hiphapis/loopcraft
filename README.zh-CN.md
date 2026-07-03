@@ -6,7 +6,7 @@
 
 灵感来自 Lance Martin 的 loop engineering 与 Andrej Karpathy 的 LLM Wiki 模式：自我改进是*系统*的属性，而非模型的属性。Loopcraft 把这个系统做成了可安装的插件。
 
-## 功能一览 (Phase 1 + 2)
+## 功能一览
 
 | 组件 | 作用 |
 |-----------|--------------|
@@ -18,6 +18,7 @@
 | **`verifier` 子代理** | 根据你的评分标准（rubric）独立对产出打分的评估者。只看产出和标准，不看 maker 的推理过程。完全阻断 maker 的主观偏差。 |
 | **`/loopcraft:loop-task` 技能** | Maker → verifier → 重试 → 门禁 → 提交的循环：提交任务说明，收到 verifier 的判定摘要，合格时自动在提交 trailer 中记录 `Loop-Verified: n/m`。留下审计证迹。 |
 | **`/loopcraft:loop-init` 技能** | 扫描仓库并与你面谈，用已配置的门禁和 rubric 初案自动搭建 `.loop/`。一条命令完成项目引导。 |
+| **`/loopcraft:loop-run` 技能** | 无人值守地遍历 backlog — 自动选别项目、执行 loop-task 循环、通过门禁、提交更改，全部自动化。所有提交只到 worktree 为止，合并到 main 永远由你决定 — 系统只是执行，绝不会推送到仓库。 |
 
 零运行时依赖：`bash + git + grep/sed/awk`。逃生口：设置 `LOOP_DISABLE=1` 可禁用所有钩子。
 
@@ -94,6 +95,14 @@ printf '.loop/journal/\n.loop/state/\n' >> .gitignore
 
 **结束会话时** — 如果改了代码却没更新 `STATE.md`，Stop 门禁会阻止一次并告诉你该记录什么。更新 STATE 后干净地结束，下一个会话就能从同一个位置无缝继续。
 
+**自主 backlog 遍历** — 让系统夜间工作：
+
+```
+/loopcraft:loop-run 3
+```
+
+在后台会话中自动选别 backlog 项目、执行 loop-task 循环、通过门禁，然后全部提交到 worktree。早上你可以查看运行日志（`.loop/journal/run-*.md`）和 Loop-Verified 提交，选择喜欢的 cherry-pick 到 main，其余的丢弃。系统绝不会合并 — 所有人为把关的权力完全保留。
+
 **观察成长** — 用 Obsidian 打开 `.loop/memory/` 查看图谱视图，或者：
 
 ```bash
@@ -119,8 +128,8 @@ git log --oneline -- .loop/memory/   # 循环在何时学到了什么
 ## 路线图
 
 - **Phase 1 — Memory** ✅：钩子、蒸馏协议、vault。
-- **Phase 2 — Self-correction**（当前版本）：可验证的评分标准（rubric）、不看 maker 推理过程、只对产出打分的独立 verifier 子代理、`/loop-task` 自我纠正循环、`/loop-init` 引导式初始化。
-- **Phase 3 — 自主运行器**：`/loop-run` 无人值守地遍历 backlog — 工作 → 验证 → 门禁 → 提交 → 蒸馏。提交只到 worktree 为止，合并到 main 永远由人决定。
+- **Phase 2 — Self-correction** ✅：可验证的评分标准（rubric）、不看 maker 推理过程、只对产出打分的独立 verifier 子代理、`/loop-task` 自我纠正循环、`/loop-init` 引导式初始化。
+- **Phase 3 — 自主运行器**（当前版本）：`/loop-run` 无人值守地遍历 backlog — 工作 → 验证 → 门禁 → 提交 → 蒸馏。提交只到 worktree 为止，合并到 main 永远由人决定。
 
 ## 环境要求
 
