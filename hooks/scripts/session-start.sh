@@ -19,6 +19,9 @@ if git -C "$ROOT" rev-parse HEAD >/dev/null 2>&1; then
   git -C "$ROOT" rev-parse HEAD > "$LOOP_DIR/state/session/$SESSION_ID.head"
 fi
 
+# untracked 기준선 — stop-gate가 "이 세션에서 생긴 신규 파일"만 세도록
+git -C "$ROOT" ls-files --others --exclude-standard > "$LOOP_DIR/state/session/$SESSION_ID.untracked" 2>/dev/null || true
+
 echo "<loopcraft-memory>"
 echo "## .loop/memory/INDEX.md"
 cat "$LOOP_DIR/memory/INDEX.md" 2>/dev/null || echo "(INDEX 없음)"

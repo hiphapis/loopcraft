@@ -41,7 +41,21 @@ if [ -f "$HEAD_FILE" ]; then
   BASE="$(cat "$HEAD_FILE")"
   COMMITTED="$(git -C "$ROOT" diff --name-only "$BASE"..HEAD 2>/dev/null || true)"
 fi
-DIRTY="$(git -C "$ROOT" status --porcelain -uall 2>/dev/null | sed -n 's/^.. //p' || true)"
+
+# 이 세션의 변경만 계산: 추적 파일 수정 + (시작 기준선에 없던) 신규 untracked.
+# 기준선 파일이 없으면(세션 중 설치 등) untracked는 세지 않는다 — 오탐(false block)보다 미탐이 낫다.
+TRACKED_DIRTY="$(git -C "$ROOT" diff --name-only HEAD 2>/dev/null || true)"
+UNTRACKED_NOW="$(git -C "$ROOT" ls-files --others --exclude-standard 2>/dev/null || true)"
+UNTRACKED_BASE="$LOOP_DIR/state/session/$SESSION_ID.untracked"
+NEW_UNTRACKED=""
+if [ -f "$UNTRACKED_BASE" ]; then
+  if [ -s "$UNTRACKED_BASE" ]; then
+    NEW_UNTRACKED="$(printf '%s\n' "$UNTRACKED_NOW" | grep -vxF -f "$UNTRACKED_BASE" || true)"
+  else
+    NEW_UNTRACKED="$UNTRACKED_NOW"
+  fi
+fi
+DIRTY="$(printf '%s\n%s\n' "$TRACKED_DIRTY" "$NEW_UNTRACKED")"
 CHANGED="$(printf '%s\n%s\n' "$COMMITTED" "$DIRTY")"
 
 CODE_CHANGED="$(printf '%s\n' "$CHANGED" | grep -vE '^$|^\.loop/|^docs/|\.md$|\.txt$' || true)"
