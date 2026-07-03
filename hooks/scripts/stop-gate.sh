@@ -20,9 +20,10 @@ WARNED="$LOOP_DIR/state/session/$SESSION_ID.warned"
 # 세션당 1회만 차단
 [ -f "$WARNED" ] && exit 0
 
-block() { # $1 = reason (따옴표 없는 평문)
+json_escape() { printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'; }
+block() { # $1 = reason
   mkdir -p "$(dirname "$WARNED")" && touch "$WARNED"
-  printf '{"decision":"block","reason":"%s"}\n' "$1"
+  printf '{"decision":"block","reason":"%s"}\n' "$(json_escape "$1")"
   exit 0
 }
 
