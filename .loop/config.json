@@ -1,0 +1,10 @@
+{
+  "gates": ["./tests/run.sh"],
+  "backlog": { "file": "README.md", "section": "Roadmap" },
+  "rubrics": [
+    { "glob": "**/*.sh", "rubric": "code" },
+    { "glob": "**/*.md", "rubric": "docs" }
+  ],
+  "maxRetries": 3,
+  "autonomy": { "commit": true, "mainMerge": false, "maxConsecutiveFails": 2 }
+}
