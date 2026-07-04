@@ -460,7 +460,7 @@ pre_compact_json_context() {
   run_hook "$PRE_COMPACT" "$repo" '{}'
   assert_eq 0 "$CAPTURE_STATUS" "pre-compact exits 0 with memory" &&
     assert_json_one_line "$CAPTURE_OUT" "pre-compact output is single JSON" &&
-    assert_contains "$CAPTURE_OUT" "additionalContext" "pre-compact JSON includes additionalContext"
+    assert_contains "$CAPTURE_OUT" "systemMessage" "pre-compact JSON includes systemMessage"
 }
 
 pre_compact_no_loop_silent() {
@@ -510,7 +510,7 @@ test_case "stop-gate: untracked STATE allows code change" stop_gate_untracked_st
 test_case "stop-gate: baseline untracked code does not block" stop_gate_existing_untracked_code_in_baseline_passes
 test_case "stop-gate: new untracked code without STATE blocks" stop_gate_new_untracked_code_without_state_blocks
 test_case "stop-gate: sanitizes malicious session_id" stop_gate_sanitizes_session_id
-test_case "pre-compact: emits valid JSON with additionalContext" pre_compact_json_context
+test_case "pre-compact: emits valid JSON with systemMessage" pre_compact_json_context
 test_case "pre-compact: no .loop is silent" pre_compact_no_loop_silent
 test_case "pre-compact: LOOP_DISABLE is silent" pre_compact_loop_disable_silent
 
