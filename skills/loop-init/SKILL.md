@@ -34,7 +34,7 @@ LEDGER.md: `# LEDGER — 실패 원장\n\n> 단계: fail → investigate → ver
 
 - `.loop/rubrics/<이름>.md` — 인터뷰에서 확정된 기준으로. frontmatter는
   `name`(필수), `gates`·`max_retries`(선택 — config 오버라이드시만).
-- `.gitignore`에 `.loop/journal/`·`.loop/state/` 2줄 추가(중복 추가 금지 — 있으면 스킵).
+- `.gitignore`에 `.loop/journal/`·`.loop/state/`·`.loop/memory/.obsidian/workspace.json` 3줄 추가(중복 추가 금지 — 있으면 스킵). 셋째 줄은 사용자가 `.loop/memory/`를 Obsidian vault로 열 때 생성되는 창-배치 상태 파일로, 사용자·기기별로 계속 바뀌어 커밋 노이즈가 되므로 무시한다. 나머지 `.obsidian/*.json`(그래프·외형·플러그인 설정)은 vault 뷰를 공유하는 값이라 커밋을 유지한다.
 
 ## 4. 마무리
 
