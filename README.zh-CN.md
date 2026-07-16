@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/loopcraft-hero.jpg" alt="Loopcraft — 自我纠正的循环与跨会话的记忆" width="880">
+</p>
+
 # Loopcraft
 
 [English](README.md) | [한국어](README.ko.md) | [日本語](README.ja.md) | **中文**
@@ -5,6 +9,30 @@
 面向 [Claude Code](https://claude.com/claude-code) 的循环工程（loop engineering）插件 — 与其用越来越长的提示词去操控模型，不如设计这样的循环：让模型**根据环境反馈自我纠正**，并**跨会话积累记忆**。
 
 灵感来自 Lance Martin 的 loop engineering 与 Andrej Karpathy 的 LLM Wiki 模式：自我改进是*系统*的属性，而非模型的属性。Loopcraft 把这个系统做成了可安装的插件。
+
+## 为什么用 Loopcraft？
+
+每个 Claude Code 会话都从零开始。你上次积累的上下文 — 那个测试为什么不稳定、你已经试过又放弃的重构、这个代码库的怪癖 — 会在会话结束或上下文被压缩的那一刻消失。常见的应对是往提示词里塞更多内容：更长的 `CLAUDE.md`、更多常驻指令。但用越来越长的提示词去操控模型无法扩展，也依然挡不住它忘记昨天的工作，或者对自己的产出打分过于宽松。
+
+循环工程采取不同的立场：**自我改进是系统的属性，而非模型的属性。** 与其用更大的提示词，不如构建一个循环 — 模型行动，*环境*回推（测试、独立评分者），模型纠正，学到的东西写入持久记忆，供下一个会话在动手之前先读取。模型不需要变得更聪明 — 围绕它的系统需要会记忆、会检查。
+
+Loopcraft 就是把这样一个系统做成了可安装的插件。在以下情况下使用它：
+
+- 在一个真实项目上**跨多个会话**工作，却在反复解释相同的上下文；
+- 想要**按明确标准验证过**的工作，而不是相信模型自己的"看起来没问题"；
+- 让 Claude **无人值守**运行，并希望每个结果在进入 `main` 之前都经过门禁、可审计；
+- 厌倦了模型**重复犯**它上周已经遇到并解决过的错误。
+
+## 工作原理
+
+<p align="center">
+  <img src="assets/loopcraft-how-it-works.svg" alt="Loopcraft 工作原理 — 记忆 vault 通过 SessionStart 注入，启动 loop-task → verifier → gate → commit 循环；验证失败则重试，蒸馏后的失败回流到 vault，Stop 门禁与 PreCompact 钩子守护会话" width="900">
+</p>
+
+循环在两个时间尺度上闭合：
+
+- **在一个任务内** — `loop-task` 把你的工作交给独立的 `verifier`，它只看产出和标准、依据 rubric 打分 — 绝不看 maker 的推理过程，因此无法被说服而放行。不合格，maker 就拿到判定并重试，最多 `maxRetries` 次。合格，工作再通过你真实的门禁（测试、类型检查），并落成一个带 `Loop-Verified: n/m` 标记的提交。
+- **跨会话** — `.loop/memory` vault 随仓库一起移动。`SessionStart` 会注入它，于是 Claude 一开始就知道过去的会话学到了什么；一旦出错，`distill` 把它变成*经过验证的*可复用规则；而 Stop 门禁和 PreCompact 钩子确保在会话结束或上下文被摘要抹去之前，进度一定被写下来。没有任何东西需要从头重学。
 
 ## 功能一览
 

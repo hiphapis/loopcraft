@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/loopcraft-hero.jpg" alt="Loopcraft — self-correcting loops and memory that survives sessions" width="880">
+</p>
+
 # Loopcraft
 
 **English** | [한국어](README.ko.md) | [日本語](README.ja.md) | [中文](README.zh-CN.md)
@@ -5,6 +9,30 @@
 Loop engineering plugin for [Claude Code](https://claude.com/claude-code) — instead of steering the model with ever-longer prompts, design loops where it **self-corrects from environment feedback** and **accumulates memory across sessions**.
 
 Inspired by Lance Martin's loop engineering work and Andrej Karpathy's LLM Wiki pattern: self-improvement is a property of the *system*, not the model. Loopcraft builds that system as an installable plugin.
+
+## Why Loopcraft?
+
+Every Claude Code session starts from zero. The context you built up last time — why a test was flaky, the refactor you already tried and abandoned, the quirks of this codebase — is gone the moment the session ends or the window compacts. The usual response is to pour more into the prompt: longer `CLAUDE.md` files, more standing instructions. But steering a model with an ever-growing prompt doesn't scale, and it still won't stop it from forgetting yesterday's work — or from grading its own output too generously.
+
+Loop engineering takes a different position: **self-improvement is a property of the system, not the model.** Instead of a bigger prompt, you build a loop — the model acts, the *environment* pushes back (tests, an independent grader), the model corrects, and whatever was learned is written to durable memory that the next session reads before doing anything. The model doesn't have to get smarter; the system around it has to remember and check.
+
+Loopcraft is that system, packaged as an installable plugin. Reach for it when you:
+
+- work a real project across **many sessions** and keep re-explaining the same context;
+- want work **verified against explicit criteria** instead of trusting the model's own "looks good to me";
+- run Claude **unattended** and need every result gated and auditable before it reaches `main`;
+- are tired of the model **repeating a mistake** it already hit — and solved — last week.
+
+## How it works
+
+<p align="center">
+  <img src="assets/loopcraft-how-it-works.svg" alt="How Loopcraft works — the memory vault feeds SessionStart, which starts the loop-task → verifier → gate → commit cycle; a failed verification retries, distilled failures flow back into the vault, and the Stop gate and PreCompact hooks guard the session" width="900">
+</p>
+
+The loop closes on two timescales:
+
+- **Within a task** — `loop-task` hands your work to an independent `verifier` that grades it against a rubric, seeing only the output and the criteria — never the maker's reasoning, so it can't be argued into a pass. Fail, and the maker gets the verdict and retries, up to `maxRetries`. Pass, and the work clears your real gates (tests, typecheck) and lands as a commit stamped `Loop-Verified: n/m`.
+- **Across sessions** — the `.loop/memory` vault travels with the repo. `SessionStart` injects it, so Claude begins already knowing what past sessions learned; when something fails, `distill` turns it into a *verified*, reusable rule; and the Stop gate and PreCompact hooks make sure progress is written down before a session ends or the context is summarized away. Nothing gets re-learned from scratch.
 
 ## What you get
 
