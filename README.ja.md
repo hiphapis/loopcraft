@@ -25,6 +25,11 @@ Loopcraft はまさにそのシステムを、インストール可能なプラ�
 
 そして vault は隠れたデータベースではなく純粋な Markdown なので、その記憶は完全にあなたのものです：Obsidian を `.loop/memory/` に向けて知識グラフが育つのを眺めても、ターミナルから grep しても、プルリクエストで読んでも構いません。システムが学んだすべてを、見て、手で編集できます。
 
+<p align="center">
+  <img src="assets/loopcraft-graph.webp" alt="実際の Loopcraft vault の Obsidian グラフビュー — STATE・INDEX・LEDGER のハブが蒸留ノートやタグと結ばれている" width="640"><br>
+  <sub><i>実際の <code>.loop/memory</code> vault の Obsidian グラフビュー — STATE / INDEX / LEDGER のハブが蒸留ノートやタグと結ばれている。</i></sub>
+</p>
+
 ## 動作の仕組み
 
 <p align="center">

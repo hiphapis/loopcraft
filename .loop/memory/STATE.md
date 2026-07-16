@@ -10,7 +10,7 @@
 - ✅ "Inspired by" 줄에 링크: Lance Martin → x.com/RLanceMartin/article/2064397389189071163 (사용자 지정), Karpathy → gist(karpathy/442a6bf...). Why Loopcraft? 말미에 Obsidian 소유권·투명성 문단 추가.
 
 ## 다음 단계
-- (없음 — 커밋·push 예정/완료)
+- (없음 — Obsidian 그래프 이미지 마스킹 후 커밋·push 완료)
 
 ## 열린 질문
 - 히어로 페이드 폭: 현재 A(30×26). 사용자가 원하면 B(55×48) 또는 더 얇게로 교체 가능(scratchpad에 fade_A/B 프리뷰 있음).

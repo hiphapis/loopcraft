@@ -25,6 +25,11 @@ Loopcraft는 바로 그 시스템을 설치 가능한 플러그인으로 만든 
 
 그리고 vault가 숨겨진 데이터베이스가 아니라 순수 마크다운이기 때문에, 그 메모리는 온전히 당신 것입니다: Obsidian을 `.loop/memory/`로 향하게 해 지식 그래프가 자라는 것을 지켜보거나, 터미널에서 grep하거나, 그냥 PR에서 읽으면 됩니다. 시스템이 배운 모든 것을 눈으로 보고 손으로 고칠 수 있습니다.
 
+<p align="center">
+  <img src="assets/loopcraft-graph.webp" alt="실제 Loopcraft vault의 Obsidian 그래프 뷰 — STATE·INDEX·LEDGER 허브가 증류된 노트·태그와 연결된 모습" width="640"><br>
+  <sub><i>실제 <code>.loop/memory</code> vault의 Obsidian 그래프 뷰 — STATE / INDEX / LEDGER 허브가 증류된 노트·태그와 연결된 모습.</i></sub>
+</p>
+
 ## 동작 원리
 
 <p align="center">

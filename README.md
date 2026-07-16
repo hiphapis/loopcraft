@@ -25,6 +25,11 @@ Loopcraft is that system, packaged as an installable plugin. Reach for it when y
 
 And because the vault is plain markdown rather than a hidden database, that memory stays yours: point Obsidian at `.loop/memory/` and watch the knowledge graph grow, grep it from the terminal, or just read it in a pull request. You can see — and edit — everything the system has learned.
 
+<p align="center">
+  <img src="assets/loopcraft-graph.webp" alt="Obsidian graph view of a real Loopcraft vault — STATE, INDEX, and LEDGER hubs linked to distilled notes and tags" width="640"><br>
+  <sub><i>A real <code>.loop/memory</code> vault in Obsidian's graph view — STATE / INDEX / LEDGER hubs linked to distilled notes and tags.</i></sub>
+</p>
+
 ## How it works
 
 <p align="center">

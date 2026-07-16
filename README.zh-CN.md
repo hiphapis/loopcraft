@@ -25,6 +25,11 @@ Loopcraft 就是把这样一个系统做成了可安装的插件。在以下情�
 
 而且 vault 是纯 Markdown 而非隐藏的数据库，所以这份记忆完全属于你：把 Obsidian 指向 `.loop/memory/` 看着知识图谱生长，或在终端里 grep，或直接在 PR 里阅读。系统学到的一切，你都看得见、也能亲手编辑。
 
+<p align="center">
+  <img src="assets/loopcraft-graph.webp" alt="真实 Loopcraft vault 的 Obsidian 图谱视图 — STATE、INDEX、LEDGER 枢纽与蒸馏笔记和标签相连" width="640"><br>
+  <sub><i>真实 <code>.loop/memory</code> vault 的 Obsidian 图谱视图 — STATE / INDEX / LEDGER 枢纽与蒸馏笔记和标签相连。</i></sub>
+</p>
+
 ## 工作原理
 
 <p align="center">
