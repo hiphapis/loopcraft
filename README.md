@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/loopcraft-hero.jpg" alt="Loopcraft — self-correcting loops and memory that survives sessions" width="880">
+  <img src="assets/loopcraft-hero.webp" alt="Loopcraft — self-correcting loops and memory that survives sessions" width="880">
 </p>
 
 # Loopcraft

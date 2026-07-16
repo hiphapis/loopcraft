@@ -43,8 +43,8 @@
 
   <!-- inject arrow (hook) -->
   <path d="M420,186 C300,235 205,268 158,318" fill="none" stroke="#f0883e" stroke-width="2" marker-end="url(#aOrange)"/>
-  <text x="232" y="244" text-anchor="middle" font-size="13" font-weight="600" fill="#f0883e">inject</text>
-  <text x="232" y="262" text-anchor="middle" font-size="10" fill="#8b949e">INDEX + STATE + ledger</text>
+  <text x="188" y="236" text-anchor="end" font-size="13" font-weight="600" fill="#f0883e">inject</text>
+  <text x="188" y="254" text-anchor="end" font-size="10" fill="#8b949e">INDEX + STATE + ledger</text>
 
   <!-- distill arrow (skill) -->
   <path d="M1052,318 C1000,262 928,224 852,186" fill="none" stroke="#38bdf8" stroke-width="2" marker-end="url(#aCyan)"/>

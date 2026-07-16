@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/loopcraft-hero.jpg" alt="Loopcraft — 自己修正するループとセッションを越える記憶" width="880">
+  <img src="assets/loopcraft-hero.webp" alt="Loopcraft — 自己修正するループとセッションを越える記憶" width="880">
 </p>
 
 # Loopcraft

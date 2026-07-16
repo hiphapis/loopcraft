@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/loopcraft-hero.jpg" alt="Loopcraft — 스스로 교정하는 루프와 세션을 넘어 유지되는 메모리" width="880">
+  <img src="assets/loopcraft-hero.webp" alt="Loopcraft — 스스로 교정하는 루프와 세션을 넘어 유지되는 메모리" width="880">
 </p>
 
 # Loopcraft
