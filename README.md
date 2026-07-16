@@ -34,6 +34,20 @@ The loop closes on two timescales:
 - **Within a task** — `loop-task` hands your work to an independent `verifier` that grades it against a rubric, seeing only the output and the criteria — never the maker's reasoning, so it can't be argued into a pass. Fail, and the maker gets the verdict and retries, up to `maxRetries`. Pass, and the work clears your real gates (tests, typecheck) and lands as a commit stamped `Loop-Verified: n/m`.
 - **Across sessions** — the `.loop/memory` vault travels with the repo. `SessionStart` injects it, so Claude begins already knowing what past sessions learned; when something fails, `distill` turns it into a *verified*, reusable rule; and the Stop gate and PreCompact hooks make sure progress is written down before a session ends or the context is summarized away. Nothing gets re-learned from scratch.
 
+## Concepts
+
+**Loop engineering** is the idea underneath everything here: you improve outcomes by shaping the *loop* the model runs in — act, get feedback from the environment, correct, and write down what was learned — rather than by hand-tuning an ever-larger prompt. The leverage moves from the model's weights to the system around it: memory, verification, and gates. A weaker model in a good loop beats a stronger model with no memory and no checks. (The framing draws on Lance Martin's work on loop/context engineering and Andrej Karpathy's LLM Wiki pattern.)
+
+The rest of the vocabulary this README uses:
+
+- **Maker** — whoever produces the work in a `loop-task`: Claude, acting on your request. The maker never grades itself.
+- **Verifier** — an independent subagent that scores the maker's output against a rubric. It sees only the output and the criteria — never the maker's reasoning — so it can't be argued into a pass. (`agents/verifier.md`)
+- **Rubric** — a small markdown file in `.loop/rubrics/` that declares, for a class of work, the pass/fail criteria and *how* each one is verified (a command to run, a file to inspect). It's the contract the verifier grades against. Example: a `code` rubric might require "tests pass", "no secrets committed", "public functions documented".
+- **Gate** — a real command from your project (`npm test`, a typecheck, `./tests/run.sh`) that must exit 0 before work is committed. Rubrics judge quality; gates enforce that it actually runs.
+- **Vault** — `.loop/memory/`, the plain-markdown store that travels with the repo: `INDEX.md` (map + stats), `STATE.md` (session handoff), `LEDGER.md` (failure log), and `notes/` (distilled rules).
+- **Distill** — the 5-stage protocol (Fail → Investigate → Verify → Distill → Consult) that turns a failure into a *verified*, reusable note in the vault, instead of a lesson you learn twice.
+- **Loop-Verified: n/m** — a commit trailer stamped by `loop-task`: n of m rubric criteria met, judged by the independent verifier. Your audit trail.
+
 ## What you get
 
 | Component | What it does |
@@ -152,6 +166,12 @@ git log --oneline -- .loop/memory/   # what the loop learned, when
 ```
 
 Note frontmatter: `title / tags / category (debugging|pattern|environment|decision) / confidence / verified / created / updated / sources`.
+
+## Everything is markdown — open it in Obsidian
+
+The vault has no database and no app dependency. Every note is plain markdown with YAML frontmatter and `[[wikilinks]]`, so the same files the loop reads are files you can read, grep, diff, and edit by hand.
+
+Point Obsidian at `.loop/memory/` and it becomes a live vault: the graph view shows how distilled rules link together, backlinks surface related failures, and frontmatter (`category`, `verified`, `confidence`) turns into searchable metadata. Nothing about the loop *requires* Obsidian — it's just a good way to *see* what the system has learned. Prefer the terminal? `git log -- .loop/memory/` shows what the loop learned, and when.
 
 ## Roadmap
 

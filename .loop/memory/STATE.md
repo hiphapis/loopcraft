@@ -3,21 +3,20 @@
 > 갱신: 2026-07-17
 
 ## 지금 하던 것
-- README 이미지 + 설명 보강 (로고는 스킵하기로 결정).
-- ✅ 히어로 `assets/loopcraft-hero.jpg` (1536×864, 16:9, JPEG q94, 287KB) — 4개 README 상단 배치.
-- ✅ 동작 원리 다이어그램 `assets/loopcraft-how-it-works.svg` — 4개 README "How it works" 섹션에 `<img width=900>`로 삽입, 렌더 검증함.
-- ✅ 4개 README(en/ko/ja/zh)에 새 섹션 2개 추가: "Why Loopcraft?"(문제의식·철학·대상), "How it works"(다이어그램 + 작업내/세션간 2가지 시간대 설명).
-- ✅ README.ja.md 기존 오타 수정: "리포지토리에는푸시" 한글 혼입 → "プッシュ".
+- README 콘텐츠·비주얼 보강 (로고 스킵).
+- ✅ 히어로 `assets/loopcraft-hero.webp` (16:9, alpha 페더 페이드, 117KB) — 4개 README 상단. 페이드 폭은 **30×26px(얇게)** 적용(초기 120×110은 너무 넓다는 피드백 반영).
+- ✅ 동작원리 다이어그램 `assets/loopcraft-how-it-works.svg` — How it works 섹션에 삽입, inject 라벨 겹침 수정 완료.
+- ✅ 4개 README 섹션: "Why Loopcraft?", "How it works"(다이어그램), **"Concepts"(용어집: loop engineering 원리 + maker/verifier/rubric/gate/vault/distill/Loop-Verified 정의)**, **"Everything is markdown — Obsidian"(마크다운·그래프뷰·no lock-in)**.
 
 ## 다음 단계
-- (없음 — push 완료)
+- (없음 — 커밋·push 예정/완료)
 
 ## 열린 질문
-- (없음)
+- 히어로 페이드 폭: 현재 A(30×26). 사용자가 원하면 B(55×48) 또는 더 얇게로 교체 가능(scratchpad에 fade_A/B 프리뷰 있음).
 
 ## 최근 결정
-- 히어로: 후보 #2 채택 → 16:9 중앙 크롭. README 이미지는 `<p align="center"><img>` HTML 관용구 사용(마크다운으로는 정렬·너비 지정 불가 — GitHub 표준 방식).
-- 히어로 가장자리 페이드: alpha 페더로 투명 처리해 라이트(흰)·다크(#0d1117) 양쪽에서 사각 경계 제거. 포맷은 **WebP**(알파+120KB, jpg/png보다 가벼움) → `assets/loopcraft-hero.webp`. jpg/png 폐기.
-- 동작원리 SVG `inject` 라벨을 화살표 왼쪽으로 이동(우측 정렬)해 곡선 겹침 해소.
-- "동작 원리"는 손수 만든 SVG(라벨 정확·벡터·plain-files). GitHub `<img src="*.svg">` 인라인 렌더 확인.
+- README 이미지는 `<p align="center"><img>` HTML 관용구(GitHub 표준; 마크다운은 정렬·너비 불가).
+- 히어로 가장자리: alpha 페더 투명 처리로 라이트/다크 양쪽 사각 경계 제거. 포맷 WebP(알파+경량). 폭 30×26px.
+- 동작원리는 손수 만든 SVG(GitHub `<img src=*.svg>` 인라인 렌더 확인).
+- Concepts 용어집 + Obsidian 섹션으로 "무엇을·왜·용어" 설명 강화.
 - 로고 제작 스킵.

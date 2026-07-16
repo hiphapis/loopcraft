@@ -34,6 +34,20 @@ Loopcraft 就是把这样一个系统做成了可安装的插件。在以下情�
 - **在一个任务内** — `loop-task` 把你的工作交给独立的 `verifier`，它只看产出和标准、依据 rubric 打分 — 绝不看 maker 的推理过程，因此无法被说服而放行。不合格，maker 就拿到判定并重试，最多 `maxRetries` 次。合格，工作再通过你真实的门禁（测试、类型检查），并落成一个带 `Loop-Verified: n/m` 标记的提交。
 - **跨会话** — `.loop/memory` vault 随仓库一起移动。`SessionStart` 会注入它，于是 Claude 一开始就知道过去的会话学到了什么；一旦出错，`distill` 把它变成*经过验证的*可复用规则；而 Stop 门禁和 PreCompact 钩子确保在会话结束或上下文被摘要抹去之前，进度一定被写下来。没有任何东西需要从头重学。
 
+## 概念（Concepts）
+
+**循环工程（loop engineering）** 是这里一切的根本思路：与其手工去调一个越来越大的提示词，不如设计模型运行所在的那个*循环*来改善结果 — 行动、从环境获取反馈、纠正、记录所学。杠杆的支点从模型权重转移到围绕它的系统（记忆、验证、门禁）。处在好循环中的弱模型，胜过既无记忆又无检查的强模型。（这一框架借鉴了 Lance Martin 关于 loop/context engineering 的工作与 Andrej Karpathy 的 LLM Wiki 模式。）
+
+本 README 用到的其余术语：
+
+- **Maker（生产者）** — 在 `loop-task` 中产出工作的主体，也就是按你的要求行动的 Claude。maker 从不给自己打分。
+- **Verifier（验证者）** — 依据 rubric 对 maker 产出打分的独立子代理。它只看产出和标准，绝不看 maker 的推理过程，因此无法被说服而放行。（`agents/verifier.md`）
+- **Rubric（评分标准）** — `.loop/rubrics/` 下的一个小 Markdown 文件，为某类工作声明合格/不合格标准，以及*如何*验证每一条（要运行的命令、要检查的文件）。它是 verifier 据以打分的契约。例如 `code` rubric 可能要求“测试通过”“不包含密钥”“公开函数有文档”。
+- **Gate（门禁）** — 提交前必须以 0 退出的、你项目里的真实命令（`npm test`、类型检查、`./tests/run.sh`）。rubric 判断质量，gate 则强制它真的能跑通。
+- **Vault（保险库）** — `.loop/memory/`，随仓库一起移动的纯 Markdown 存储：`INDEX.md`（目录+统计）、`STATE.md`（会话交接）、`LEDGER.md`（失败台账）、`notes/`（蒸馏出的规则）。
+- **Distill（蒸馏）** — 把失败变成 vault 中*经过验证的*可复用笔记的五阶段协议（Fail → Investigate → Verify → Distill → Consult），而不是让你把教训学两遍。
+- **Loop-Verified: n/m** — `loop-task` 在提交 trailer 中打的标记：由独立 verifier 判定，m 条标准中满足了 n 条。这是你的审计证迹。
+
 ## 功能一览
 
 | 组件 | 作用 |
@@ -152,6 +166,12 @@ git log --oneline -- .loop/memory/   # 循环在何时学到了什么
 ```
 
 笔记 frontmatter：`title / tags / category (debugging|pattern|environment|decision) / confidence / verified / created / updated / sources`。
+
+## 一切皆 Markdown — 用 Obsidian 打开
+
+vault 没有数据库，也不依赖任何应用。每条笔记都是带 YAML frontmatter 和 `[[双链]]` 的纯 Markdown，所以循环读取的那些文件，你也可以读取、grep、diff、手动编辑。
+
+把 Obsidian 指向 `.loop/memory/`，它就变成一个活的 vault：图谱视图显示蒸馏规则之间如何相互链接，反向链接让相关的失败浮现，frontmatter（`category`、`verified`、`confidence`）成为可搜索的元数据。循环并不*需要* Obsidian — 它只是*观察*系统学到了什么的一个好方式。更喜欢终端？`git log -- .loop/memory/` 会告诉你循环在何时学到了什么。
 
 ## 路线图
 

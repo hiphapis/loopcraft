@@ -34,6 +34,20 @@ Loopcraft はまさにそのシステムを、インストール可能なプラ�
 - **タスクの中で** — `loop-task` はあなたの作業を独立した `verifier` に渡します。verifier はルーブリックに従って産出物と基準だけを見て採点します — maker の推論は決して見ないため、説得して合格させることはできません。失敗すれば maker が判定を受け取り、`maxRetries` まで再試行します。合格すれば実際のゲート（テスト・型チェック）を通過し、`Loop-Verified: n/m` が刻まれたコミットとして残ります。
 - **セッションを越えて** — `.loop/memory` vault はリポジトリと一緒に移動します。`SessionStart` がそれを注入するので、Claude は過去のセッションが学んだことを知った状態で始まり、何かが失敗すれば `distill` がそれを*検証済み*の再利用可能な規則に変え、Stop ゲートと PreCompact フックが、セッションが終わるかコンテキストが要約で消える前に進捗を必ず書き残させます。何もゼロから学び直しません。
 
+## 概念（Concepts）
+
+**ループエンジニアリング（loop engineering）** は、ここにあるすべての土台となる考え方です：どんどん大きくなるプロンプトを手で調整する代わりに、モデルが回る*ループ*そのものを設計して結果を改善します — 行動し、環境からフィードバックを受け、修正し、学んだことを書き残す。てこの支点がモデルの重みから、それを取り巻くシステム（記憶・検証・ゲート）へ移ります。良いループの中の弱いモデルは、記憶も検証もない強いモデルに勝ります。（この枠組みは Lance Martin の loop/context engineering と Andrej Karpathy の LLM Wiki パターンに基づいています。）
+
+この README が使う残りの用語：
+
+- **Maker（メーカー）** — `loop-task` で作業を生み出す主体、つまりあなたの依頼に従って動く Claude です。maker は自分自身を採点しません。
+- **Verifier（検証者）** — maker の産出物をルーブリックに従って採点する独立したサブエージェントです。産出物と基準だけを見て、maker の推論は決して見ないため、説得して合格させることはできません。（`agents/verifier.md`）
+- **Rubric（ルーブリック）** — `.loop/rubrics/` にある小さな Markdown ファイルで、ある種類の作業について合格/不合格の基準と、各基準を*どう*検証するか（実行するコマンド、確認するファイル）を宣言します。verifier が採点する契約書です。例：`code` ルーブリックは「テスト通過」「秘密情報を含めない」「公開関数のドキュメント化」を求めるかもしれません。
+- **Gate（ゲート）** — コミット前に必ず 0 で終了しなければならない、プロジェクトの実際のコマンド（`npm test`、型チェック、`./tests/run.sh`）です。ルーブリックが品質を判断するなら、ゲートは実際に動くことを強制します。
+- **Vault（ボールト）** — `.loop/memory/`、リポジトリと一緒に移動する純粋な Markdown ストア：`INDEX.md`（目次+統計）、`STATE.md`（セッション引き継ぎ）、`LEDGER.md`（失敗台帳）、`notes/`（蒸留された規則）。
+- **Distill（蒸留）** — 失敗を二度学ぶ代わりに vault の*検証済み*の再利用可能なノートに変える 5 段階プロトコル（Fail → Investigate → Verify → Distill → Consult）。
+- **Loop-Verified: n/m** — `loop-task` がコミット trailer に刻む印：独立した verifier による、m 個中 n 個の基準を満たした。あなたの監査証跡です。
+
 ## 提供機能
 
 | コンポーネント | 役割 |
@@ -152,6 +166,12 @@ git log --oneline -- .loop/memory/   # ループがいつ何を学んだか
 ```
 
 ノートの frontmatter: `title / tags / category (debugging|pattern|environment|decision) / confidence / verified / created / updated / sources`。
+
+## すべては Markdown — Obsidian で開けます
+
+vault にはデータベースもアプリ依存もありません。すべてのノートは YAML frontmatter と `[[ウィキリンク]]` を使う純粋な Markdown なので、ループが読むそのファイルを、あなた自身も読み、grep し、diff し、手で編集できます。
+
+Obsidian を `.loop/memory/` に向ければ、生きた vault になります：グラフビューで蒸留された規則同士のつながりが見え、バックリンクで関連する失敗が浮かび上がり、frontmatter（`category`、`verified`、`confidence`）が検索可能なメタデータになります。ループが Obsidian を*必要とする*わけではまったくありません — システムが何を学んだかを*見る*のに便利な方法というだけです。ターミナルが好みなら？ `git log -- .loop/memory/` でループがいつ何を学んだかがわかります。
 
 ## ロードマップ
 

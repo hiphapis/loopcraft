@@ -34,6 +34,20 @@ Loopcraft는 바로 그 시스템을 설치 가능한 플러그인으로 만든 
 - **작업 안에서** — `loop-task`는 당신의 작업을 독립 `verifier`에게 넘깁니다. verifier는 rubric에 따라 산출물과 기준만 보고 채점합니다 — maker의 추론은 절대 보지 않으므로 설득해서 통과시킬 수 없습니다. 실패하면 maker가 판정을 받아 `maxRetries`까지 재시도합니다. 통과하면 실제 게이트(테스트·타입체크)를 통과한 뒤 `Loop-Verified: n/m`이 찍힌 커밋으로 남습니다.
 - **세션을 가로질러** — `.loop/memory` vault는 리포와 함께 이동합니다. `SessionStart`가 이를 주입해 Claude는 과거 세션이 배운 것을 이미 아는 상태로 시작하고, 무언가 실패하면 `distill`이 그것을 *검증된* 재사용 규칙으로 바꾸며, Stop gate와 PreCompact hook이 세션이 끝나거나 컨텍스트가 요약돼 사라지기 전에 진행 상황을 반드시 기록하게 합니다. 아무것도 처음부터 다시 배우지 않습니다.
 
+## 개념 (Concepts)
+
+**루프 엔지니어링(loop engineering)** 이 모든 것의 바탕이 되는 발상입니다: 점점 더 큰 프롬프트를 손으로 다듬는 대신, 모델이 도는 *루프* 자체를 설계해 결과를 개선합니다 — 행동하고, 환경에서 피드백을 받고, 교정하고, 배운 것을 기록한다. 지렛대의 받침점이 모델의 가중치에서 그것을 둘러싼 시스템(메모리·검증·게이트)으로 옮겨집니다. 좋은 루프 안의 약한 모델이, 메모리도 검증도 없는 강한 모델을 이깁니다. (이 관점은 Lance Martin의 loop/context engineering과 Andrej Karpathy의 LLM Wiki 패턴에 기대고 있습니다.)
+
+이 README가 쓰는 나머지 용어:
+
+- **Maker(메이커)** — `loop-task`에서 작업을 만들어내는 주체, 즉 당신의 요청에 따라 움직이는 Claude입니다. maker는 자기 자신을 채점하지 않습니다.
+- **Verifier(검증자)** — maker의 산출물을 rubric에 따라 채점하는 독립 서브에이전트입니다. 산출물과 기준만 볼 뿐 maker의 추론은 절대 보지 않으므로 설득당해 통과시킬 수 없습니다. (`agents/verifier.md`)
+- **Rubric(루브릭)** — `.loop/rubrics/`에 있는 작은 마크다운 파일로, 특정 종류의 작업에 대해 통과/실패 기준과 각 기준을 *어떻게* 검증하는지(실행할 명령, 확인할 파일)를 선언합니다. verifier가 채점하는 계약서입니다. 예: `code` rubric은 "테스트 통과", "비밀정보 미포함", "공개 함수 문서화"를 요구할 수 있습니다.
+- **Gate(게이트)** — 커밋 전에 반드시 0으로 종료돼야 하는, 프로젝트의 실제 명령(`npm test`, 타입체크, `./tests/run.sh`)입니다. rubric이 품질을 판단한다면, gate는 실제로 돌아가는지를 강제합니다.
+- **Vault(볼트)** — `.loop/memory/`, 리포와 함께 이동하는 순수 마크다운 저장소: `INDEX.md`(목차+통계), `STATE.md`(세션 인계), `LEDGER.md`(실패 원장), `notes/`(증류된 규칙).
+- **Distill(증류)** — 실패를 두 번 배우는 대신 vault의 *검증된* 재사용 노트로 바꾸는 5단계 프로토콜(Fail → Investigate → Verify → Distill → Consult).
+- **Loop-Verified: n/m** — `loop-task`가 커밋 트레일러에 찍는 표식: 독립 verifier 기준 m개 중 n개 충족. 당신의 감사 추적입니다.
+
 ## 제공 기능
 
 | 구성요소 | 역할 |
@@ -152,6 +166,12 @@ git log --oneline -- .loop/memory/   # 루프가 언제 무엇을 배웠는지
 ```
 
 노트 frontmatter: `title / tags / category (debugging|pattern|environment|decision) / confidence / verified / created / updated / sources`.
+
+## 모든 것은 마크다운 — Obsidian에서 열어보세요
+
+vault에는 데이터베이스도, 앱 의존성도 없습니다. 모든 노트는 YAML frontmatter와 `[[위키링크]]`를 쓰는 순수 마크다운이라, 루프가 읽는 바로 그 파일을 당신도 읽고 grep하고 diff하고 손으로 고칠 수 있습니다.
+
+Obsidian을 `.loop/memory/`로 향하게 하면 살아 있는 vault가 됩니다: 그래프 뷰로 증류된 규칙들이 어떻게 연결되는지 보이고, 백링크로 관련 실패가 드러나며, frontmatter(`category`, `verified`, `confidence`)가 검색 가능한 메타데이터가 됩니다. 루프가 Obsidian을 *요구*하는 건 전혀 아닙니다 — 시스템이 무엇을 배웠는지 *보기에* 좋은 방법일 뿐입니다. 터미널이 편하다면? `git log -- .loop/memory/`로 루프가 언제 무엇을 배웠는지 알 수 있습니다.
 
 ## 로드맵
 
