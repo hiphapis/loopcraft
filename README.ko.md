@@ -71,6 +71,63 @@ Loopcraft는 바로 그 시스템을 설치 가능한 플러그인으로 만든 
 
 런타임 의존성 제로: `bash + git + grep/sed/awk`. 탈출구: `LOOP_DISABLE=1`로 모든 hook 무력화.
 
+## 실제 동작 예시
+
+*`loop-task` 사이클을 예시로 보여줍니다. rubric과 verdict는 가독성을 위해 옮겼고, 형식·기준은 loopcraft의 실제 것을 따릅니다 — 다만 아래 실행 자체는 대표 예시이지 실제 로그는 아닙니다.*
+
+hook 스크립트에 새 분기를 추가한다고 해봅시다. 바로 커밋하는 대신 루프에 태웁니다:
+
+```
+/loopcraft:loop-task Add a LOOP_DISABLE short-circuit to the SessionStart hook
+```
+
+`loop-task`는 변경된 파일(`hooks/scripts/*.sh`)을 **`code`** rubric에 매칭합니다 — 각 기준마다 검증 방법이 선언된 5개 기준:
+
+```
+1. 게이트 통과       — ./tests/run.sh 종료 코드 0, `not ok` 라인 없음
+2. 안전 옵션 선언    — 변경 스크립트에 `set -euo pipefail`(최소 `set -u`) 선언
+3. 변수 인용         — 경로·사용자 입력 변수를 "$VAR"로 확장
+4. 테스트 동반       — 새 분기마다 tests/run.sh에 대응 assert_* 추가
+5. 실행 권한 유지     — hooks/scripts/ 아래 파일은 755 이상 유지
+```
+
+maker가 작업을 마치면, diff와 rubric만 — 자기 추론은 절대 빼고 — 독립 `verifier`에 넘깁니다. 첫 번째 채점:
+
+```
+## Verdict
+
+| # | 기준 | 판정 | 증거 |
+|---|------|------|------|
+| 1 | 게이트 통과 | pass | ./tests/run.sh → 종료 0, `not ok` 0개 |
+| 2 | 안전 옵션 선언 | pass | 2번째 줄: `set -euo pipefail` |
+| 3 | 변수 인용 | pass | diff에 `"$LOOP_DISABLE"`만 추가 |
+| 4 | 테스트 동반 | fail | 새 early-return 분기, tests/run.sh diff에 대응 assert_* 없음 |
+| 5 | 실행 권한 유지 | pass | 모드 755 그대로 |
+
+**채점 불가 기준**: 없음
+**결과**: FAIL (4/5)
+**FAIL 사유 요약**: #4 — 새 disable 분기에 회귀 테스트가 없음.
+```
+
+verifier는 maker의 추론을 본 적이 없으므로 "당연히 잘 됩니다"는 통하지 않습니다 — 오직 빠진 테스트만 문제됩니다. maker는 그 FAIL 사유만 받아 `assert_*` 케이스를 추가하고 다시 제출합니다. 두 번째 채점:
+
+```
+**결과**: PASS (5/5)
+```
+
+이제 실제 게이트가 돌아 green이 되고, 작업은 verdict가 커밋에 새겨진 채 안착합니다:
+
+```
+$ git log -1 --format='%s%n%n%b'
+Add LOOP_DISABLE short-circuit to SessionStart hook
+
+Loop-Verified: 5/5
+```
+
+이 `Loop-Verified: 5/5` 트레일러가 감사 추적입니다: 5개 기준 전부 충족, 설득당하지 않는 채점자의 서명.
+
+> **비용.** 시도마다 독립 채점 패스가 1회 추가되고, FAIL이면 maker → verifier 라운드를 한 번 더 돕니다(`maxRetries`까지). 이 오버헤드가 바로 그 *메커니즘*입니다 — 그래서 `loop-task`는 한 줄 수정이나 열린 탐색이 아니라 비자명하고 검증 가능한 작업을 위한 것입니다. 그런 작업은 그냥 평소처럼 하세요; 메모리 hook은 어느 쪽이든 계속 돕니다.
+
 ## 설치
 
 **방법 A — 마켓플레이스 (권장):**
@@ -194,7 +251,7 @@ Obsidian을 `.loop/memory/`로 향하게 하면 살아 있는 vault가 됩니다
 ## 테스트
 
 ```bash
-./tests/run.sh   # 26케이스: hook 계약·새니타이즈·엣지 케이스
+./tests/run.sh   # 28케이스: hook 계약·새니타이즈·엣지 케이스
 ```
 
 ## 라이선스

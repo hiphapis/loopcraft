@@ -71,6 +71,63 @@ Loopcraft はまさにそのシステムを、インストール可能なプラ�
 
 ランタイム依存ゼロ: `bash + git + grep/sed/awk`。エスケープハッチ: `LOOP_DISABLE=1` で全フックを無効化。
 
+## 実際に動かすと
+
+*`loop-task` サイクルの例です。rubric と verdict は読みやすさのために訳してありますが、形式と基準は loopcraft の実物に従います — 実行そのものは代表的な例であり、採取したログではありません。*
+
+フックスクリプトに新しい分岐を追加するとします。直接コミットする代わりに、ループに通します：
+
+```
+/loopcraft:loop-task Add a LOOP_DISABLE short-circuit to the SessionStart hook
+```
+
+`loop-task` は変更ファイル（`hooks/scripts/*.sh`）を **`code`** ルーブリックにマッチさせます — 各基準に検証方法が宣言された 5 つの基準：
+
+```
+1. ゲート通過        — ./tests/run.sh が終了コード 0、`not ok` 行なし
+2. 安全オプション宣言 — 変更スクリプトに `set -euo pipefail`（最低 `set -u`）を宣言
+3. 変数のクォート     — パス・ユーザー入力の変数を "$VAR" で展開
+4. テストの同伴       — 新しい分岐ごとに tests/run.sh へ対応する assert_* を追加
+5. 実行ビット維持     — hooks/scripts/ 配下のファイルは 755 以上を維持
+```
+
+メーカーは作業を終えると、diff とルーブリックだけを — 自分の推論は決して混ぜず — 独立した `verifier` に渡します。1 回目の採点：
+
+```
+## Verdict
+
+| # | 基準 | 判定 | 証拠 |
+|---|------|------|------|
+| 1 | ゲート通過 | pass | ./tests/run.sh → 終了 0、`not ok` 0 件 |
+| 2 | 安全オプション宣言 | pass | 2 行目: `set -euo pipefail` |
+| 3 | 変数のクォート | pass | diff は `"$LOOP_DISABLE"` のみ追加 |
+| 4 | テストの同伴 | fail | 新しい early-return 分岐、tests/run.sh の diff に対応 assert_* なし |
+| 5 | 実行ビット維持 | pass | モード 755 のまま |
+
+**採点不能な基準**: なし
+**結果**: FAIL (4/5)
+**FAIL 要約**: #4 — 新しい disable 分岐に回帰テストがない。
+```
+
+verifier はメーカーの推論を見ていないので、「どう見ても動く」は通用しません — 効くのは欠けているテストだけです。メーカーはその FAIL 要約だけを受け取り、`assert_*` ケースを追加して再提出します。2 回目：
+
+```
+**結果**: PASS (5/5)
+```
+
+ここで実際のゲートが走り、green になり、作業は verdict をコミットに刻んで着地します：
+
+```
+$ git log -1 --format='%s%n%n%b'
+Add LOOP_DISABLE short-circuit to SessionStart hook
+
+Loop-Verified: 5/5
+```
+
+この `Loop-Verified: 5/5` trailer が監査証跡です：5 基準すべて充足、説得できない採点者による署名。
+
+> **コスト。** 試行ごとに独立した採点パスが 1 回加わり、FAIL ならメーカー → verifier のラウンドをもう一度回します（`maxRetries` まで）。このオーバーヘッドこそが*仕組み*です — だから `loop-task` は 1 行修正や当てのない探索ではなく、非自明で検証可能な作業のためのものです。そうした作業は普段どおりに進めてください；記憶フックはどちらにせよ動き続けます。
+
 ## インストール
 
 **方法 A — マーケットプレイス（推奨）:**
@@ -194,7 +251,7 @@ Obsidian を `.loop/memory/` に向ければ、生きた vault になります�
 ## テスト
 
 ```bash
-./tests/run.sh   # 26 ケース: フック契約・サニタイズ・エッジケース
+./tests/run.sh   # 28 ケース: フック契約・サニタイズ・エッジケース
 ```
 
 ## ライセンス

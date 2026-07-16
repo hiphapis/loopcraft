@@ -71,6 +71,63 @@ The rest of the vocabulary this README uses:
 
 Zero runtime dependencies: `bash + git + grep/sed/awk`. Escape hatch: set `LOOP_DISABLE=1` to disable all hooks.
 
+## See it in action
+
+*An illustrative `loop-task` cycle. The rubric is the one loopcraft actually ships, and the verdict follows the verifier's real output format — but the run below is a representative example, not a captured log.*
+
+Say you're adding a new branch to a hook script. Instead of committing it directly, you route it through the loop:
+
+```
+/loopcraft:loop-task Add a LOOP_DISABLE short-circuit to the SessionStart hook
+```
+
+`loop-task` matches the changed file (`hooks/scripts/*.sh`) to the **`code`** rubric — five criteria, each with a declared way to check it:
+
+```
+1. Gate passes        — ./tests/run.sh exits 0, no `not ok` lines
+2. Safety options     — changed scripts declare `set -euo pipefail` (or at least `set -u`)
+3. Variables quoted   — path / user-input vars expanded as "$VAR"
+4. Tests accompany    — every new branch gets a matching assert_* in tests/run.sh
+5. Executable bit kept — files under hooks/scripts/ stay 755+
+```
+
+The maker does the work, then hands the diff — and *only* the diff and the rubric, never its own reasoning — to the independent `verifier`. First pass:
+
+```
+## Verdict
+
+| # | Criterion           | Verdict | Evidence |
+|---|---------------------|---------|----------|
+| 1 | Gate passes         | pass    | ./tests/run.sh → exit 0, 0 `not ok` |
+| 2 | Safety options      | pass    | line 2: `set -euo pipefail` |
+| 3 | Variables quoted    | pass    | diff adds only `"$LOOP_DISABLE"` |
+| 4 | Tests accompany     | fail    | new early-return branch, no matching assert_* in the tests/run.sh diff |
+| 5 | Executable bit kept | pass    | mode 755 unchanged |
+
+**Unscorable criteria**: none
+**Result**: FAIL (4/5)
+**FAIL summary**: #4 — the new disable branch ships without a regression test.
+```
+
+Because the verifier never saw the maker's reasoning, "it obviously works" carries no weight — only the missing test does. The maker gets just that FAIL summary, adds the `assert_*` case, and re-submits. Second pass:
+
+```
+**Result**: PASS (5/5)
+```
+
+Now the real gate runs, comes back green, and the work lands with its verdict stamped into the commit:
+
+```
+$ git log -1 --format='%s%n%n%b'
+Add LOOP_DISABLE short-circuit to SessionStart hook
+
+Loop-Verified: 5/5
+```
+
+That `Loop-Verified: 5/5` trailer is the audit trail: five criteria, all met, signed off by a grader that couldn't be argued into it.
+
+> **What it costs.** Every attempt adds one independent grading pass, and a FAIL buys another maker → verifier round (up to `maxRetries`). That overhead *is* the mechanism — which is also why `loop-task` is for non-trivial, verifiable work, not one-line fixes or open-ended exploration. For those, just work normally; the memory hooks keep running regardless.
+
 ## Installation
 
 **Option A — marketplace (recommended):**
@@ -194,7 +251,7 @@ Point Obsidian at `.loop/memory/` and it becomes a live vault: the graph view sh
 ## Testing
 
 ```bash
-./tests/run.sh   # 26 cases: hook contracts, sanitization, edge cases
+./tests/run.sh   # 28 cases: hook contracts, sanitization, edge cases
 ```
 
 ## License

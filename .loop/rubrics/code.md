@@ -2,28 +2,28 @@
 name: code
 ---
 
-# code — bash 스크립트 rubric
+# code — bash script rubric
 
-대상: `hooks/scripts/*.sh`, `tests/run.sh` 등 저장소 내 모든 `.sh` 파일 변경.
+Targets: every change to a `.sh` file in the repository — `hooks/scripts/*.sh`, `tests/run.sh`, etc.
 
-## 기준
+## Criteria
 
-1. **게이트 통과**: `./tests/run.sh` 실행 시 종료 코드가 0이고 출력에 `not ok` 라인이 없다.
-   - 검증 방법: `./tests/run.sh` 실행 후 종료 코드와 `grep -c '^not ok'` 결과 확인.
-   - 통과 조건: exit code 0 AND `not ok` 개수 0.
+1. **Gate passes**: `./tests/run.sh` exits 0 and its output contains no `not ok` lines.
+   - How to verify: run `./tests/run.sh`, then check the exit code and `grep -c '^not ok'`.
+   - Pass condition: exit code 0 AND `not ok` count 0.
 
-2. **안전 옵션 선언**: 신규·수정된 스크립트 상단에 `set -euo pipefail` 또는 최소 `set -u`가 선언되어 있다.
-   - 검증 방법: 변경된 `.sh` 파일에서 `grep -n '^set -'`.
-   - 통과 조건: 모든 변경 스크립트가 `set -u` 이상의 안전 옵션을 포함.
+2. **Safety options declared**: every new or changed script declares `set -euo pipefail`, or at minimum `set -u`, near the top.
+   - How to verify: `grep -n '^set -'` on the changed `.sh` files.
+   - Pass condition: every changed script includes a safety option of `set -u` or stricter.
 
-3. **변수 인용**: 변경분에서 경로·사용자 입력을 담는 변수는 `"$VAR"` 형태로 따옴표에 감싸 확장한다.
-   - 검증 방법: `git diff`의 추가(+) 라인에서 따옴표 없이 노출된 `$VAR`/`${VAR}` 확장을 grep.
-   - 통과 조건: 위험한 unquoted 확장이 없음 — 배열 전개 등 의도적 예외는 verifier가 근거를 남기고 pass 처리 가능.
+3. **Variables quoted**: in the diff, variables holding paths or user input are expanded quoted, as `"$VAR"`.
+   - How to verify: grep the added (`+`) lines of `git diff` for unquoted `$VAR`/`${VAR}` expansions.
+   - Pass condition: no dangerous unquoted expansions — deliberate exceptions (e.g. intentional array expansion) may pass if the verifier records the rationale.
 
-4. **테스트 동반**: 새 분기·새 실패 케이스 등 새 동작을 추가했다면 `tests/run.sh`에 대응하는 `assert_*` 케이스가 함께 추가·수정된다.
-   - 검증 방법: 대상 스크립트 diff의 새 조건 분기 수와 `tests/run.sh` diff의 신규 assert 호출 수 비교.
-   - 통과 조건: 새로 도입된 조건 분기마다 최소 1개의 대응 케이스 존재 (버그 수정이면 회귀 재현 케이스 포함).
+4. **Tests accompany behavior**: if new behavior is added (a new branch, a new failure case), a matching `assert_*` case is added or updated in `tests/run.sh`.
+   - How to verify: compare the count of new conditional branches in the target script's diff against the count of new assert calls in the `tests/run.sh` diff.
+   - Pass condition: at least one matching case exists for every newly introduced branch (for a bugfix, this includes a regression-reproducing case).
 
-5. **실행 권한 유지**: `hooks/scripts/` 아래 신규·수정 파일은 실행 권한을 보유한다.
-   - 검증 방법: `git diff --stat` 또는 `ls -la`로 파일 모드 확인.
-   - 통과 조건: 해당 파일들이 `rwxr-xr-x`(755) 이상.
+5. **Executable bit kept**: new or changed files under `hooks/scripts/` retain the executable bit.
+   - How to verify: check the file mode with `git diff --stat` or `ls -la`.
+   - Pass condition: those files are `rwxr-xr-x` (755) or higher.

@@ -71,6 +71,63 @@ Loopcraft 就是把这样一个系统做成了可安装的插件。在以下情�
 
 零运行时依赖：`bash + git + grep/sed/awk`。逃生口：设置 `LOOP_DISABLE=1` 可禁用所有钩子。
 
+## 实际运行起来
+
+*这是一个 `loop-task` 循环的示例。rubric 与 verdict 为便于阅读做了翻译，但格式与标准遵循 loopcraft 的真实产物 — 而下面这次运行本身是代表性示例，并非采集到的日志。*
+
+假设你要给某个钩子脚本加一个新分支。与其直接提交，不如把它送进循环：
+
+```
+/loopcraft:loop-task Add a LOOP_DISABLE short-circuit to the SessionStart hook
+```
+
+`loop-task` 会把改动的文件（`hooks/scripts/*.sh`）匹配到 **`code`** rubric — 五条标准，每条都声明了如何验证：
+
+```
+1. 门禁通过        — ./tests/run.sh 退出码 0，无 `not ok` 行
+2. 声明安全选项     — 改动脚本声明 `set -euo pipefail`（至少 `set -u`）
+3. 变量加引号       — 路径 / 用户输入变量以 "$VAR" 展开
+4. 附带测试        — 每个新分支都在 tests/run.sh 中加入对应的 assert_*
+5. 保留可执行位     — hooks/scripts/ 下的文件保持 755 及以上
+```
+
+maker 完成工作后，只把 diff 和 rubric — 绝不带上自己的推理 — 交给独立的 `verifier`。第一次打分：
+
+```
+## Verdict
+
+| # | 标准 | 判定 | 证据 |
+|---|------|------|------|
+| 1 | 门禁通过 | pass | ./tests/run.sh → 退出 0，`not ok` 0 条 |
+| 2 | 声明安全选项 | pass | 第 2 行: `set -euo pipefail` |
+| 3 | 变量加引号 | pass | diff 只新增 `"$LOOP_DISABLE"` |
+| 4 | 附带测试 | fail | 新的 early-return 分支，tests/run.sh 的 diff 中无对应 assert_* |
+| 5 | 保留可执行位 | pass | 模式 755 未变 |
+
+**无法评分的标准**: 无
+**结果**: FAIL (4/5)
+**FAIL 摘要**: #4 — 新的 disable 分支没有回归测试。
+```
+
+verifier 从未看过 maker 的推理，所以“它显然能跑”毫无分量 — 唯一算数的是那条缺失的测试。maker 只拿到这条 FAIL 摘要，补上 `assert_*` 用例，重新提交。第二次：
+
+```
+**结果**: PASS (5/5)
+```
+
+此时真实门禁运行、变绿，改动带着刻进提交的 verdict 落地：
+
+```
+$ git log -1 --format='%s%n%n%b'
+Add LOOP_DISABLE short-circuit to SessionStart hook
+
+Loop-Verified: 5/5
+```
+
+这条 `Loop-Verified: 5/5` trailer 就是你的审计证迹：五条标准全部满足，由一个无法被说服的打分者签署。
+
+> **代价。** 每次尝试都多一趟独立打分，FAIL 则再跑一轮 maker → verifier（直到 `maxRetries`）。这份开销正是*机制*本身 — 也正因如此，`loop-task` 面向的是非平凡、可验证的工作，而不是一行修改或漫无目的的探索。那类事照常做就好；记忆钩子无论如何都在运行。
+
 ## 安装
 
 **方式 A — 插件市场（推荐）：**
@@ -194,7 +251,7 @@ vault 没有数据库，也不依赖任何应用。每条笔记都是带 YAML fr
 ## 测试
 
 ```bash
-./tests/run.sh   # 26 个用例：钩子契约、输入净化、边界情况
+./tests/run.sh   # 28 个用例：钩子契约、输入净化、边界情况
 ```
 
 ## 许可证
