@@ -8,7 +8,7 @@
 
 [Claude Code](https://claude.com/claude-code)용 루프 엔지니어링 플러그인 — 점점 길어지는 프롬프트로 모델을 조종하는 대신, 모델이 **환경 피드백으로 스스로 교정**하고 **세션을 넘어 메모리를 축적**하는 루프를 설계합니다.
 
-Lance Martin의 loop engineering과 Andrej Karpathy의 LLM Wiki 패턴에서 영감을 받았습니다: 자기개선은 모델이 아니라 *시스템*의 속성입니다. Loopcraft는 그 시스템을 설치 가능한 플러그인으로 만듭니다.
+[Lance Martin의 loop engineering](https://x.com/RLanceMartin/article/2064397389189071163)과 [Andrej Karpathy의 LLM Wiki 패턴](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f)에서 영감을 받았습니다: 자기개선은 모델이 아니라 *시스템*의 속성입니다. Loopcraft는 그 시스템을 설치 가능한 플러그인으로 만듭니다.
 
 ## 왜 Loopcraft인가?
 
@@ -22,6 +22,8 @@ Loopcraft는 바로 그 시스템을 설치 가능한 플러그인으로 만든 
 - 모델의 "괜찮아 보인다"를 믿는 대신 **명시적 기준으로 검증된** 작업을 원할 때;
 - Claude를 **무인으로** 돌리면서 모든 결과가 `main`에 닿기 전에 게이트를 통과하고 감사 가능하길 원할 때;
 - 모델이 지난주에 이미 겪고 해결한 **실수를 또 반복**하는 데 지쳤을 때.
+
+그리고 vault가 숨겨진 데이터베이스가 아니라 순수 마크다운이기 때문에, 그 메모리는 온전히 당신 것입니다: Obsidian을 `.loop/memory/`로 향하게 해 지식 그래프가 자라는 것을 지켜보거나, 터미널에서 grep하거나, 그냥 PR에서 읽으면 됩니다. 시스템이 배운 모든 것을 눈으로 보고 손으로 고칠 수 있습니다.
 
 ## 동작 원리
 

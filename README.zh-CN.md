@@ -8,7 +8,7 @@
 
 面向 [Claude Code](https://claude.com/claude-code) 的循环工程（loop engineering）插件 — 与其用越来越长的提示词去操控模型，不如设计这样的循环：让模型**根据环境反馈自我纠正**，并**跨会话积累记忆**。
 
-灵感来自 Lance Martin 的 loop engineering 与 Andrej Karpathy 的 LLM Wiki 模式：自我改进是*系统*的属性，而非模型的属性。Loopcraft 把这个系统做成了可安装的插件。
+灵感来自 [Lance Martin 的 loop engineering](https://x.com/RLanceMartin/article/2064397389189071163) 与 [Andrej Karpathy 的 LLM Wiki 模式](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f)：自我改进是*系统*的属性，而非模型的属性。Loopcraft 把这个系统做成了可安装的插件。
 
 ## 为什么用 Loopcraft？
 
@@ -22,6 +22,8 @@ Loopcraft 就是把这样一个系统做成了可安装的插件。在以下情�
 - 想要**按明确标准验证过**的工作，而不是相信模型自己的"看起来没问题"；
 - 让 Claude **无人值守**运行，并希望每个结果在进入 `main` 之前都经过门禁、可审计；
 - 厌倦了模型**重复犯**它上周已经遇到并解决过的错误。
+
+而且 vault 是纯 Markdown 而非隐藏的数据库，所以这份记忆完全属于你：把 Obsidian 指向 `.loop/memory/` 看着知识图谱生长，或在终端里 grep，或直接在 PR 里阅读。系统学到的一切，你都看得见、也能亲手编辑。
 
 ## 工作原理
 

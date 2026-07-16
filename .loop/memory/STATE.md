@@ -7,6 +7,7 @@
 - ✅ 히어로 `assets/loopcraft-hero.webp` (16:9, alpha 페더 페이드, 117KB) — 4개 README 상단. 페이드 폭은 **30×26px(얇게)** 적용(초기 120×110은 너무 넓다는 피드백 반영).
 - ✅ 동작원리 다이어그램 `assets/loopcraft-how-it-works.svg` — How it works 섹션에 삽입, inject 라벨 겹침 수정 완료.
 - ✅ 4개 README 섹션: "Why Loopcraft?", "How it works"(다이어그램), **"Concepts"(용어집: loop engineering 원리 + maker/verifier/rubric/gate/vault/distill/Loop-Verified 정의)**, **"Everything is markdown — Obsidian"(마크다운·그래프뷰·no lock-in)**.
+- ✅ "Inspired by" 줄에 링크: Lance Martin → x.com/RLanceMartin/article/2064397389189071163 (사용자 지정), Karpathy → gist(karpathy/442a6bf...). Why Loopcraft? 말미에 Obsidian 소유권·투명성 문단 추가.
 
 ## 다음 단계
 - (없음 — 커밋·push 예정/완료)

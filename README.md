@@ -8,7 +8,7 @@
 
 Loop engineering plugin for [Claude Code](https://claude.com/claude-code) — instead of steering the model with ever-longer prompts, design loops where it **self-corrects from environment feedback** and **accumulates memory across sessions**.
 
-Inspired by Lance Martin's loop engineering work and Andrej Karpathy's LLM Wiki pattern: self-improvement is a property of the *system*, not the model. Loopcraft builds that system as an installable plugin.
+Inspired by [Lance Martin's loop engineering work](https://x.com/RLanceMartin/article/2064397389189071163) and [Andrej Karpathy's LLM Wiki pattern](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f): self-improvement is a property of the *system*, not the model. Loopcraft builds that system as an installable plugin.
 
 ## Why Loopcraft?
 
@@ -22,6 +22,8 @@ Loopcraft is that system, packaged as an installable plugin. Reach for it when y
 - want work **verified against explicit criteria** instead of trusting the model's own "looks good to me";
 - run Claude **unattended** and need every result gated and auditable before it reaches `main`;
 - are tired of the model **repeating a mistake** it already hit — and solved — last week.
+
+And because the vault is plain markdown rather than a hidden database, that memory stays yours: point Obsidian at `.loop/memory/` and watch the knowledge graph grow, grep it from the terminal, or just read it in a pull request. You can see — and edit — everything the system has learned.
 
 ## How it works
 
