@@ -23,7 +23,7 @@ starter rubrics — show each criterion and tune it to the project. Explain that
 a "how to verify" + "pass condition"**, and don't accept an unscorable criterion ("the code is clean") —
 help rewrite it into a verifiable form.
 
-> **Display language:** the question/option wording below is an example (intent) only. **Present the questions and options in the user's working language** (English for an English user, Chinese for a Chinese user). But the values written to config.json are always canonical English enums (`file`/`github`/`jira`/`command`, `none`/`comment`/`draft-pr`).
+> **Display language:** the wording below is an example (intent) only. **Present every user-facing string in the user's working language** (English for an English user, Chinese for a Chinese user) — the questions and options here, and the operational messages too: the git-repo precondition abort, the "no GitHub remote detected" warning, and the "Draft PR unavailable" note. Only the values written to config.json stay canonical English enums (`file`/`github`/`jira`/`command`, `none`/`comment`/`draft-pr`).
 
 > **Precondition:** if this isn't a git repository, loopcraft can't commit — don't scaffold; stop with "run this inside a git repository".
 
