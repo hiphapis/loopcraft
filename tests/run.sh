@@ -183,7 +183,7 @@ session_start_ledger_open_failures() {
 EOF
   run_hook "$SESSION_START" "$repo" '{"session_id":"s1"}'
   assert_eq 0 "$CAPTURE_STATUS" "session-start exits 0 with LEDGER" &&
-    assert_contains "$CAPTURE_OUT" "미해결 실패 2건" "open LEDGER entries are counted"
+    assert_contains "$CAPTURE_OUT" "2 unresolved failures" "open LEDGER entries are counted"
 }
 
 session_start_ledger_distilled_only() {
@@ -196,7 +196,7 @@ session_start_ledger_distilled_only() {
 EOF
   run_hook "$SESSION_START" "$repo" '{"session_id":"s1"}'
   assert_eq 0 "$CAPTURE_STATUS" "session-start exits 0 with distilled LEDGER" &&
-    assert_not_contains "$CAPTURE_OUT" "미해결 실패" "distilled-only LEDGER does not warn"
+    assert_not_contains "$CAPTURE_OUT" "unresolved failures" "distilled-only LEDGER does not warn"
 }
 
 session_start_writes_head() {
