@@ -171,9 +171,9 @@ cat > .loop/config.json <<'EOF'
   "autonomy": { "commit": true, "mainMerge": false, "maxConsecutiveFails": 2 }
 }
 EOF
-printf '# Memory Index\n\n> 노트 0 · verified 0%% · 갱신: YYYY-MM-DD\n\n## debugging\n\n## pattern\n\n## environment\n\n## decision\n' > .loop/memory/INDEX.md
-printf '# STATE — 세션 인계\n\n## 지금 하던 것\n- (없음)\n\n## 다음 단계\n- (없음)\n\n## 열린 질문\n- (없음)\n' > .loop/memory/STATE.md
-printf '# LEDGER — 실패 원장\n\n> 단계: fail → investigate → verify → distilled\n\n| 날짜 | 증상 | 단계 | 노트 |\n|------|------|------|------|\n' > .loop/memory/LEDGER.md
+printf '# Memory Index\n\n> notes 0 · verified 0%% · updated: YYYY-MM-DD\n\n## debugging\n\n## pattern\n\n## environment\n\n## decision\n' > .loop/memory/INDEX.md
+printf '# STATE — session handoff\n\n## Working on\n- (none)\n\n## Next steps\n- (none)\n\n## Open questions\n- (none)\n\n## Recent decisions\n- (none)\n' > .loop/memory/STATE.md
+printf '# LEDGER — failure ledger\n\n> stages: fail → investigate → verify → distilled\n\n| date | symptom | stage | note |\n|------|---------|-------|------|\n' > .loop/memory/LEDGER.md
 printf '.loop/journal/\n.loop/state/\n' >> .gitignore
 ```
 

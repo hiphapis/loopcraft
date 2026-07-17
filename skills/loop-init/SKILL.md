@@ -29,7 +29,7 @@ and don't accept an unscorable criterion ("the code is clean") — help rewrite 
 
 INDEX.md: `# Memory Index\n\n> notes 0 · verified 0% · updated: <today>\n\n## debugging\n\n## pattern\n\n## environment\n\n## decision`
 STATE.md: `# STATE — session handoff\n\n## Working on\n- (none)\n\n## Next steps\n- (none)\n\n## Open questions\n- (none)\n\n## Recent decisions\n- (none)`
-LEDGER.md: `# LEDGER — failure ledger\n\n> stages: fail → investigate → verify → distilled\n\n| date | symptom | stage | note |\n|------|------|------|------|`
+LEDGER.md: `# LEDGER — failure ledger\n\n> stages: fail → investigate → verify → distilled\n\n| date | symptom | stage | note |\n|------|---------|-------|------|`
 
 - `.loop/rubrics/<name>.md` — from the criteria confirmed in the interview. Frontmatter is
   `name` (required), `gates`·`max_retries` (optional — only when overriding the config).

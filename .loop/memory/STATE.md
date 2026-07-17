@@ -15,9 +15,10 @@
 
 ## Open questions
 - Hero fade width: currently A (30×26). Can swap to B (55×48) or thinner if wanted (fade_A/B previews in scratchpad).
-- Commit-message language: history is Korean; going forward, English commits may fit the now-English repo (undecided).
 
 ## Recent decisions
+- Manual-setup templates (INDEX/STATE/LEDGER) in all 4 READMEs now match loop-init's output exactly: English content, 4-section STATE (added "Recent decisions"), unified LEDGER separator. README.ja/zh already had English templates; only ko had Korean ones. loop-init's LEDGER separator was aligned to the READMEs/actual file.
+- Commit messages are English from now on (the repo is English; existing history stays Korean).
 - ko/ja/zh READMEs stay localized (intentional translations); only their language-switcher nav labels (the localized language names) remain non-English, by design.
 - Shell-script logic left byte-identical; only comments and user-facing strings translated. The one hook↔test coupling ("N unresolved failures") was changed on both sides together.
 - The Obsidian graph capture is from a different (adopting) project's real vault → the caption "A real vault" is accurate; filling this repo's own vault was dropped.
