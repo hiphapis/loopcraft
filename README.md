@@ -41,6 +41,12 @@ The loop closes on two timescales:
 - **Within a task** — `loop-task` hands your work to an independent `verifier` that grades it against a rubric, seeing only the output and the criteria — never the maker's reasoning, so it can't be argued into a pass. Fail, and the maker gets the verdict and retries, up to `maxRetries`. Pass, and the work clears your real gates (tests, typecheck) and lands as a commit stamped `Loop-Verified: n/m`.
 - **Across sessions** — the `.loop/memory` vault travels with the repo. `SessionStart` injects it, so Claude begins already knowing what past sessions learned; when something fails, `distill` turns it into a *verified*, reusable rule; and the Stop gate and PreCompact hooks make sure progress is written down before a session ends or the context is summarized away. Nothing gets re-learned from scratch.
 
+And it scales out to a whole backlog: **`loop-run`** applies that same task loop to each item — read from a pluggable source (file / GitHub / Jira) and written back as a comment or a draft PR — unattended, while merging to your default branch stays your call.
+
+<p align="center">
+  <img src="assets/loopcraft-autonomous-runner.svg" alt="The autonomous runner — loop-run reads a backlog from a pluggable source (file / GitHub / Jira), runs the loop-task cycle on a per-item loop/<id> branch, writes back a comment or a draft PR with Closes #<id>, then you review and merge; loop-run never merges the default branch" width="900">
+</p>
+
 ## Concepts
 
 **Loop engineering** is the idea underneath everything here: you improve outcomes by shaping the *loop* the model runs in — act, get feedback from the environment, correct, and write down what was learned — rather than by hand-tuning an ever-larger prompt. The leverage moves from the model's weights to the system around it: memory, verification, and gates. A weaker model in a good loop beats a stronger model with no memory and no checks. (The framing draws on Lance Martin's work on loop/context engineering and Andrej Karpathy's LLM Wiki pattern.)
@@ -218,31 +224,11 @@ This launches a background session that autonomously picks backlog items, runs l
 git log --oneline -- .loop/memory/   # what the loop learned, when
 ```
 
-## Vault format
+## Autonomous runner
 
-```
-.loop/
-├── config.json          # gates, backlog source, retry caps, autonomy limits
-├── memory/              # committed to the repo
-│   ├── INDEX.md         # map of content + stats (note count, verified %)
-│   ├── STATE.md         # session handoff: working on / next / open questions
-│   ├── LEDGER.md        # failure ledger: fail → investigate → verify → distilled
-│   └── notes/*.md       # distilled rules (YAML frontmatter + [[wikilinks]])
-├── journal/             # run logs — gitignored
-└── state/               # volatile session markers — gitignored
-```
+`loop-run` iterates a backlog unattended, applying the `loop-task` cycle to each item. Two knobs make it fit your setup — the **backlog source** it pulls work from, and the **write-back** it does with each result.
 
-Note frontmatter: `title / tags / category (debugging|pattern|environment|decision) / confidence / verified / created / updated / sources`.
-
-## Everything is markdown — open it in Obsidian
-
-The vault has no database and no app dependency. Every note is plain markdown with YAML frontmatter and `[[wikilinks]]`, so the same files the loop reads are files you can read, grep, diff, and edit by hand.
-
-Point Obsidian at `.loop/memory/` and it becomes a live vault: the graph view shows how distilled rules link together, backlinks surface related failures, and frontmatter (`category`, `verified`, `confidence`) turns into searchable metadata. Nothing about the loop *requires* Obsidian — it's just a good way to *see* what the system has learned. Prefer the terminal? `git log -- .loop/memory/` shows what the loop learned, and when.
-
-## Backlog sources & write-back
-
-The autonomous runner (`loop-run`) reads its work queue from a pluggable **backlog source**, chosen during `loop-init`:
+It reads its work queue from a pluggable **backlog source**, chosen during `loop-init`:
 
 - **file** (default) — a document section you designate, e.g. `docs/project-status.md` § "Ready to Execute".
 - **github** / **jira** / **command** — loopcraft runs the `list`/`report` commands you configure. The core never calls vendor tools directly; a bundled GitHub adapter (`.loop/adapters/github.sh`) is the reference implementation, and other providers copy it as a template.
@@ -293,6 +279,28 @@ gh label create loop:blocked --description "loopcraft: escalated"
    ```
    For each ready issue, `loop-run` reads it as a backlog item, runs the full `loop-task` cycle (rubric → verifier → gate → `Loop-Verified` commit) on a per-item `loop/<id>` branch, then writes back a verdict comment plus a **draft PR** whose body says `Closes #<id>`.
 4. **You stay in control.** Review each draft PR; merging it lets GitHub auto-close the linked issue. loopcraft never merges to the default branch and never closes issues itself — an item it can't finish gets `loop:blocked` and is skipped next run.
+
+## Vault format
+
+```
+.loop/
+├── config.json          # gates, backlog source, retry caps, autonomy limits
+├── memory/              # committed to the repo
+│   ├── INDEX.md         # map of content + stats (note count, verified %)
+│   ├── STATE.md         # session handoff: working on / next / open questions
+│   ├── LEDGER.md        # failure ledger: fail → investigate → verify → distilled
+│   └── notes/*.md       # distilled rules (YAML frontmatter + [[wikilinks]])
+├── journal/             # run logs — gitignored
+└── state/               # volatile session markers — gitignored
+```
+
+Note frontmatter: `title / tags / category (debugging|pattern|environment|decision) / confidence / verified / created / updated / sources`.
+
+## Everything is markdown — open it in Obsidian
+
+The vault has no database and no app dependency. Every note is plain markdown with YAML frontmatter and `[[wikilinks]]`, so the same files the loop reads are files you can read, grep, diff, and edit by hand.
+
+Point Obsidian at `.loop/memory/` and it becomes a live vault: the graph view shows how distilled rules link together, backlinks surface related failures, and frontmatter (`category`, `verified`, `confidence`) turns into searchable metadata. Nothing about the loop *requires* Obsidian — it's just a good way to *see* what the system has learned. Prefer the terminal? `git log -- .loop/memory/` shows what the loop learned, and when.
 
 ## Roadmap
 

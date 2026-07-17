@@ -41,6 +41,12 @@ Loopcraft 就是把这样一个系统做成了可安装的插件。在以下情�
 - **在一个任务内** — `loop-task` 把你的工作交给独立的 `verifier`，它只看产出和标准、依据 rubric 打分 — 绝不看 maker 的推理过程，因此无法被说服而放行。不合格，maker 就拿到判定并重试，最多 `maxRetries` 次。合格，工作再通过你真实的门禁（测试、类型检查），并落成一个带 `Loop-Verified: n/m` 标记的提交。
 - **跨会话** — `.loop/memory` vault 随仓库一起移动。`SessionStart` 会注入它，于是 Claude 一开始就知道过去的会话学到了什么；一旦出错，`distill` 把它变成*经过验证的*可复用规则；而 Stop 门禁和 PreCompact 钩子确保在会话结束或上下文被摘要抹去之前，进度一定被写下来。没有任何东西需要从头重学。
 
+而且它还能扩展到整个 backlog：**`loop-run`** 把同样的任务循环应用到每一项 — 从可插拔来源（file / GitHub / Jira）读取，并以评论或 draft PR 的形式写回 — 全程无人值守，而合并到默认分支始终由你决定。
+
+<p align="center">
+  <img src="assets/loopcraft-autonomous-runner.svg" alt="自主运行器 — loop-run 从可插拔来源（file / GitHub / Jira）读取 backlog，在按项目划分的 loop/<id> 分支上运行 loop-task 循环，以带有 Closes #<id> 的评论或 draft PR 方式写回，然后由你审阅并合并；loop-run 绝不会合并默认分支" width="900">
+</p>
+
 ## 概念（Concepts）
 
 **循环工程（loop engineering）** 是这里一切的根本思路：与其手工去调一个越来越大的提示词，不如设计模型运行所在的那个*循环*来改善结果 — 行动、从环境获取反馈、纠正、记录所学。杠杆的支点从模型权重转移到围绕它的系统（记忆、验证、门禁）。处在好循环中的弱模型，胜过既无记忆又无检查的强模型。（这一框架借鉴了 Lance Martin 关于 loop/context engineering 的工作与 Andrej Karpathy 的 LLM Wiki 模式。）
@@ -218,29 +224,9 @@ printf '.loop/journal/\n.loop/state/\n' >> .gitignore
 git log --oneline -- .loop/memory/   # 循环在何时学到了什么
 ```
 
-## Vault 结构
+## 自主运行器
 
-```
-.loop/
-├── config.json          # 门禁命令、backlog 来源、重试上限、自主权限
-├── memory/              # 提交到仓库
-│   ├── INDEX.md         # 目录（MOC）+ 统计（笔记数、verified 比例）
-│   ├── STATE.md         # 会话交接：在做什么 / 下一步 / 未决问题
-│   ├── LEDGER.md        # 失败台账：fail → investigate → verify → distilled
-│   └── notes/*.md       # 蒸馏出的规则（YAML frontmatter + [[双链]]）
-├── journal/             # 运行日志 — gitignore
-└── state/               # 易失性会话标记 — gitignore
-```
-
-笔记 frontmatter：`title / tags / category (debugging|pattern|environment|decision) / confidence / verified / created / updated / sources`。
-
-## 一切皆 Markdown — 用 Obsidian 打开
-
-vault 没有数据库，也不依赖任何应用。每条笔记都是带 YAML frontmatter 和 `[[双链]]` 的纯 Markdown，所以循环读取的那些文件，你也可以读取、grep、diff、手动编辑。
-
-把 Obsidian 指向 `.loop/memory/`，它就变成一个活的 vault：图谱视图显示蒸馏规则之间如何相互链接，反向链接让相关的失败浮现，frontmatter（`category`、`verified`、`confidence`）成为可搜索的元数据。循环并不*需要* Obsidian — 它只是*观察*系统学到了什么的一个好方式。更喜欢终端？`git log -- .loop/memory/` 会告诉你循环在何时学到了什么。
-
-## Backlog 来源与 write-back
+`loop-run` 无人值守地遍历 backlog，对每一项应用 `loop-task` 循环。两个旋钮让它贴合你的环境 — 它从哪里拉取工作的 **backlog 来源**，以及对每个结果执行的 **write-back**。
 
 自主运行器（`loop-run`）从 `loop-init` 时选定的可插拔 **backlog 来源** 中读取工作队列：
 
@@ -293,6 +279,28 @@ gh label create loop:blocked --description "loopcraft: escalated"
    ```
    对每个 ready 的 issue，`loop-run` 会把它当作一个 backlog 项目读取，在按项目划分的 `loop/<id>` 分支上运行完整的 `loop-task` 循环（rubric → verifier → gate → `Loop-Verified` 提交），然后写回一条判定评论，并附带一个正文写着 `Closes #<id>` 的 **draft PR**。
 4. **主动权始终在你手上。** 审阅每一个 draft PR；合并后 GitHub 会自动关闭关联的 issue。loopcraft 绝不会合并到默认分支，也绝不会自己关闭 issue — 无法完成的项目会被打上 `loop:blocked`，下一次运行时跳过。
+
+## Vault 结构
+
+```
+.loop/
+├── config.json          # 门禁命令、backlog 来源、重试上限、自主权限
+├── memory/              # 提交到仓库
+│   ├── INDEX.md         # 目录（MOC）+ 统计（笔记数、verified 比例）
+│   ├── STATE.md         # 会话交接：在做什么 / 下一步 / 未决问题
+│   ├── LEDGER.md        # 失败台账：fail → investigate → verify → distilled
+│   └── notes/*.md       # 蒸馏出的规则（YAML frontmatter + [[双链]]）
+├── journal/             # 运行日志 — gitignore
+└── state/               # 易失性会话标记 — gitignore
+```
+
+笔记 frontmatter：`title / tags / category (debugging|pattern|environment|decision) / confidence / verified / created / updated / sources`。
+
+## 一切皆 Markdown — 用 Obsidian 打开
+
+vault 没有数据库，也不依赖任何应用。每条笔记都是带 YAML frontmatter 和 `[[双链]]` 的纯 Markdown，所以循环读取的那些文件，你也可以读取、grep、diff、手动编辑。
+
+把 Obsidian 指向 `.loop/memory/`，它就变成一个活的 vault：图谱视图显示蒸馏规则之间如何相互链接，反向链接让相关的失败浮现，frontmatter（`category`、`verified`、`confidence`）成为可搜索的元数据。循环并不*需要* Obsidian — 它只是*观察*系统学到了什么的一个好方式。更喜欢终端？`git log -- .loop/memory/` 会告诉你循环在何时学到了什么。
 
 ## 路线图
 

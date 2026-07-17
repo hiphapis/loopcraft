@@ -41,6 +41,12 @@ Loopcraft는 바로 그 시스템을 설치 가능한 플러그인으로 만든 
 - **작업 안에서** — `loop-task`는 당신의 작업을 독립 `verifier`에게 넘깁니다. verifier는 rubric에 따라 산출물과 기준만 보고 채점합니다 — maker의 추론은 절대 보지 않으므로 설득해서 통과시킬 수 없습니다. 실패하면 maker가 판정을 받아 `maxRetries`까지 재시도합니다. 통과하면 실제 게이트(테스트·타입체크)를 통과한 뒤 `Loop-Verified: n/m`이 찍힌 커밋으로 남습니다.
 - **세션을 가로질러** — `.loop/memory` vault는 리포와 함께 이동합니다. `SessionStart`가 이를 주입해 Claude는 과거 세션이 배운 것을 이미 아는 상태로 시작하고, 무언가 실패하면 `distill`이 그것을 *검증된* 재사용 규칙으로 바꾸며, Stop gate와 PreCompact hook이 세션이 끝나거나 컨텍스트가 요약돼 사라지기 전에 진행 상황을 반드시 기록하게 합니다. 아무것도 처음부터 다시 배우지 않습니다.
 
+그리고 이는 백로그 전체로 확장됩니다: **`loop-run`**은 동일한 작업 루프를 각 항목에 적용합니다 — 플러그블 소스(file / GitHub / Jira)에서 읽어와 댓글이나 draft PR로 다시 기록하며 — 무인으로 실행되고, 기본 브랜치로의 병합은 항상 당신의 결정으로 남습니다.
+
+<p align="center">
+  <img src="assets/loopcraft-autonomous-runner.svg" alt="자율 러너 — loop-run이 플러그블 소스(file / GitHub / Jira)에서 backlog를 읽어, 항목별 loop/<id> 브랜치에서 loop-task 사이클을 실행하고, Closes #<id>가 포함된 댓글이나 draft PR로 write-back한 뒤 사람이 검토하고 병합합니다; loop-run은 기본 브랜치를 절대 병합하지 않습니다" width="900">
+</p>
+
 ## 개념 (Concepts)
 
 **루프 엔지니어링(loop engineering)** 이 모든 것의 바탕이 되는 발상입니다: 점점 더 큰 프롬프트를 손으로 다듬는 대신, 모델이 도는 *루프* 자체를 설계해 결과를 개선합니다 — 행동하고, 환경에서 피드백을 받고, 교정하고, 배운 것을 기록한다. 지렛대의 받침점이 모델의 가중치에서 그것을 둘러싼 시스템(메모리·검증·게이트)으로 옮겨집니다. 좋은 루프 안의 약한 모델이, 메모리도 검증도 없는 강한 모델을 이깁니다. (이 관점은 Lance Martin의 loop/context engineering과 Andrej Karpathy의 LLM Wiki 패턴에 기대고 있습니다.)
@@ -218,29 +224,9 @@ printf '.loop/journal/\n.loop/state/\n' >> .gitignore
 git log --oneline -- .loop/memory/   # 루프가 언제 무엇을 배웠는지
 ```
 
-## Vault 포맷
+## 자율 러너
 
-```
-.loop/
-├── config.json          # 게이트·backlog 소스·재시도 상한·자율 권한
-├── memory/              # 리포에 커밋
-│   ├── INDEX.md         # 목차(MOC) + 통계 (노트 수, verified 비율)
-│   ├── STATE.md         # 세션 인계: 하던 것 / 다음 단계 / 열린 질문
-│   ├── LEDGER.md        # 실패 원장: fail → investigate → verify → distilled
-│   └── notes/*.md       # 증류된 규칙 (YAML frontmatter + [[위키링크]])
-├── journal/             # 실행 로그 — gitignore
-└── state/               # 휘발성 세션 마커 — gitignore
-```
-
-노트 frontmatter: `title / tags / category (debugging|pattern|environment|decision) / confidence / verified / created / updated / sources`.
-
-## 모든 것은 마크다운 — Obsidian에서 열어보세요
-
-vault에는 데이터베이스도, 앱 의존성도 없습니다. 모든 노트는 YAML frontmatter와 `[[위키링크]]`를 쓰는 순수 마크다운이라, 루프가 읽는 바로 그 파일을 당신도 읽고 grep하고 diff하고 손으로 고칠 수 있습니다.
-
-Obsidian을 `.loop/memory/`로 향하게 하면 살아 있는 vault가 됩니다: 그래프 뷰로 증류된 규칙들이 어떻게 연결되는지 보이고, 백링크로 관련 실패가 드러나며, frontmatter(`category`, `verified`, `confidence`)가 검색 가능한 메타데이터가 됩니다. 루프가 Obsidian을 *요구*하는 건 전혀 아닙니다 — 시스템이 무엇을 배웠는지 *보기에* 좋은 방법일 뿐입니다. 터미널이 편하다면? `git log -- .loop/memory/`로 루프가 언제 무엇을 배웠는지 알 수 있습니다.
-
-## Backlog 소스 & write-back
+`loop-run`은 backlog를 무인으로 순회하며 각 항목에 `loop-task` 사이클을 적용합니다. 두 가지 설정이 당신의 환경에 맞춰줍니다 — 작업을 가져오는 **backlog 소스**와, 각 결과에 대해 수행하는 **write-back**입니다.
 
 자율 러너(`loop-run`)는 `loop-init`에서 선택한 플러그블 **backlog 소스**로부터 작업 큐를 읽습니다:
 
@@ -293,6 +279,28 @@ gh label create loop:blocked --description "loopcraft: escalated"
    ```
    준비된 이슈마다 `loop-run`은 이를 backlog 항목으로 읽어, 항목별 `loop/<id>` 브랜치에서 전체 `loop-task` 사이클(rubric → verifier → gate → `Loop-Verified` 커밋)을 실행한 다음, 판정 댓글과 `Closes #<id>`라고 적힌 본문을 가진 **draft PR**을 작성합니다.
 4. **당신이 통제권을 가집니다.** 각 draft PR을 검토하세요; 병합하면 GitHub가 연결된 이슈를 자동으로 닫습니다. loopcraft는 절대 기본 브랜치에 병합하거나 이슈를 직접 닫지 않습니다 — 끝내지 못한 항목은 `loop:blocked`가 붙어 다음 실행에서 건너뜁니다.
+
+## Vault 포맷
+
+```
+.loop/
+├── config.json          # 게이트·backlog 소스·재시도 상한·자율 권한
+├── memory/              # 리포에 커밋
+│   ├── INDEX.md         # 목차(MOC) + 통계 (노트 수, verified 비율)
+│   ├── STATE.md         # 세션 인계: 하던 것 / 다음 단계 / 열린 질문
+│   ├── LEDGER.md        # 실패 원장: fail → investigate → verify → distilled
+│   └── notes/*.md       # 증류된 규칙 (YAML frontmatter + [[위키링크]])
+├── journal/             # 실행 로그 — gitignore
+└── state/               # 휘발성 세션 마커 — gitignore
+```
+
+노트 frontmatter: `title / tags / category (debugging|pattern|environment|decision) / confidence / verified / created / updated / sources`.
+
+## 모든 것은 마크다운 — Obsidian에서 열어보세요
+
+vault에는 데이터베이스도, 앱 의존성도 없습니다. 모든 노트는 YAML frontmatter와 `[[위키링크]]`를 쓰는 순수 마크다운이라, 루프가 읽는 바로 그 파일을 당신도 읽고 grep하고 diff하고 손으로 고칠 수 있습니다.
+
+Obsidian을 `.loop/memory/`로 향하게 하면 살아 있는 vault가 됩니다: 그래프 뷰로 증류된 규칙들이 어떻게 연결되는지 보이고, 백링크로 관련 실패가 드러나며, frontmatter(`category`, `verified`, `confidence`)가 검색 가능한 메타데이터가 됩니다. 루프가 Obsidian을 *요구*하는 건 전혀 아닙니다 — 시스템이 무엇을 배웠는지 *보기에* 좋은 방법일 뿐입니다. 터미널이 편하다면? `git log -- .loop/memory/`로 루프가 언제 무엇을 배웠는지 알 수 있습니다.
 
 ## 로드맵
 
