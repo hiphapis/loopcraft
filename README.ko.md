@@ -54,6 +54,9 @@ Loopcraft는 바로 그 시스템을 설치 가능한 플러그인으로 만든 
 - **Vault(볼트)** — `.loop/memory/`, 리포와 함께 이동하는 순수 마크다운 저장소: `INDEX.md`(목차+통계), `STATE.md`(세션 인계), `LEDGER.md`(실패 원장), `notes/`(증류된 규칙).
 - **Distill(증류)** — 실패를 두 번 배우는 대신 vault의 *검증된* 재사용 노트로 바꾸는 5단계 프로토콜(Fail → Investigate → Verify → Distill → Consult).
 - **Loop-Verified: n/m** — `loop-task`가 커밋 트레일러에 찍는 표식: 독립 verifier 기준 m개 중 n개 충족. 당신의 감사 추적입니다.
+- **Backlog 소스** — `loop-run`이 작업 큐를 읽어오는 곳: 문서 섹션(`file`, 기본값) 또는 `loop-init`에서 연결하는 외부 시스템(`github` / `jira` / `command`).
+- **Adapter(어댑터)** — 하나의 provider에 대한 `list`/`report` 계약을 구현하는 작은 스크립트(예: `.loop/adapters/github.sh`). 코어는 vendor-neutral을 유지하며, `gh`/`jira`가 호출되는 곳은 어댑터뿐입니다. 새 provider를 위한 템플릿으로 복사해 쓰세요.
+- **Write-back** — `loop-run`이 소스에 결과를 반영하는 방식: `none`, 판정 `comment`, 또는 병합 시 항목이 자동으로 닫히도록 `Closes #<id>`를 링크하는 `draft-pr`.
 
 ## 제공 기능
 
@@ -255,6 +258,41 @@ Obsidian을 `.loop/memory/`로 향하게 하면 살아 있는 vault가 됩니다
 | `draft-pr` | 항목당 1개 (`loop/<id>`) | feature 브랜치만 | 푸시 후 `Closes #<id>`가 포함된 **draft PR** 오픈 |
 
 loopcraft는 이슈를 닫거나 기본 브랜치에 병합하지 않습니다 — 사람이 draft PR을 병합하면 플랫폼이 연결된 이슈를 자동으로 닫습니다. feature 브랜치 푸시는 `draft-pr` 모드(옵트인)에서만 발생하며, 그 외 모든 모드는 푸시 없이 유지됩니다.
+
+### GitHub 설정
+
+**GitHub Issue**를 선택하면 `loop-init`이 이 내용을 대신 작성해 주지만, 그 형태는 다음과 같습니다 — `.loop/config.json`의 해당 부분:
+
+```json
+"backlog": {
+  "source": "github",
+  "list": "bash .loop/adapters/github.sh list --label loop:ready",
+  "report": "bash .loop/adapters/github.sh report",
+  "writeback": "draft-pr",
+  "base": "main"
+}
+```
+
+일회성 라벨(loop-init이 생성을 제안합니다):
+
+```bash
+gh label create loop:ready   --description "loopcraft: pick up"
+gh label create loop:manual  --description "loopcraft: manual only (skip)"
+gh label create loop:blocked --description "loopcraft: escalated"
+```
+
+### GitHub, 처음부터 끝까지
+
+*GitHub Issues를 대상으로 한 대표적인 `loop-run` 실행 — 예시일 뿐, 실제로 캡처된 로그는 아닙니다.*
+
+1. **한 번만 온보딩합니다.** `loop-init` → 소스로 **GitHub Issue**, write-back으로 **draft-pr**을 선택합니다. 어댑터를 `.loop/adapters/github.sh`로 복사하고, `gh auth`를 확인한 뒤 위의 라벨들을 생성합니다.
+2. **작업을 큐에 넣습니다.** 처리하고 싶은 이슈에는 `loop:ready`를, 사람이 필요한 항목에는 `loop:manual`을 남겨둡니다.
+3. **루프를 실행합니다.**
+   ```
+   /loopcraft:loop-run 3
+   ```
+   준비된 이슈마다 `loop-run`은 이를 backlog 항목으로 읽어, 항목별 `loop/<id>` 브랜치에서 전체 `loop-task` 사이클(rubric → verifier → gate → `Loop-Verified` 커밋)을 실행한 다음, 판정 댓글과 `Closes #<id>`라고 적힌 본문을 가진 **draft PR**을 작성합니다.
+4. **당신이 통제권을 가집니다.** 각 draft PR을 검토하세요; 병합하면 GitHub가 연결된 이슈를 자동으로 닫습니다. loopcraft는 절대 기본 브랜치에 병합하거나 이슈를 직접 닫지 않습니다 — 끝내지 못한 항목은 `loop:blocked`가 붙어 다음 실행에서 건너뜁니다.
 
 ## 로드맵
 

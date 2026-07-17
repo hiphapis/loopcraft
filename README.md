@@ -54,6 +54,9 @@ The rest of the vocabulary this README uses:
 - **Vault** — `.loop/memory/`, the plain-markdown store that travels with the repo: `INDEX.md` (map + stats), `STATE.md` (session handoff), `LEDGER.md` (failure log), and `notes/` (distilled rules).
 - **Distill** — the 5-stage protocol (Fail → Investigate → Verify → Distill → Consult) that turns a failure into a *verified*, reusable note in the vault, instead of a lesson you learn twice.
 - **Loop-Verified: n/m** — a commit trailer stamped by `loop-task`: n of m rubric criteria met, judged by the independent verifier. Your audit trail.
+- **Backlog source** — where `loop-run` reads its work queue: a document section (`file`, the default) or an external system (`github` / `jira` / `command`) you wire up at `loop-init`.
+- **Adapter** — a small script (e.g. `.loop/adapters/github.sh`) implementing the `list`/`report` contract for one provider. The core stays vendor-neutral; the adapter is the only place `gh`/`jira` is ever called. Copy it as a template for a new provider.
+- **Write-back** — what `loop-run` does with a result on the source: `none`, a verdict `comment`, or a `draft-pr` that links `Closes #<id>` so your merge auto-closes the item.
 
 ## What you get
 
@@ -255,6 +258,41 @@ The autonomous runner (`loop-run`) reads its work queue from a pluggable **backl
 | `draft-pr` | one per item (`loop/<id>`) | feature branch only | pushes and opens a **draft PR** with `Closes #<id>` |
 
 loopcraft never closes issues or merges to the default branch — a human merges the draft PR and the platform auto-closes the linked issue. Feature-branch push happens only in `draft-pr` mode (opt-in); every other mode stays push-free.
+
+### GitHub setup
+
+`loop-init` writes this for you when you pick **GitHub Issue**, but here's the shape — the relevant part of `.loop/config.json`:
+
+```json
+"backlog": {
+  "source": "github",
+  "list": "bash .loop/adapters/github.sh list --label loop:ready",
+  "report": "bash .loop/adapters/github.sh report",
+  "writeback": "draft-pr",
+  "base": "main"
+}
+```
+
+One-time labels (loop-init offers to create them):
+
+```bash
+gh label create loop:ready   --description "loopcraft: pick up"
+gh label create loop:manual  --description "loopcraft: manual only (skip)"
+gh label create loop:blocked --description "loopcraft: escalated"
+```
+
+### GitHub, end to end
+
+*A representative `loop-run` against GitHub Issues — illustrative, not a captured log.*
+
+1. **Onboard once.** `loop-init` → choose **GitHub Issue** as the source and **draft-pr** for write-back. It copies the adapter to `.loop/adapters/github.sh`, checks `gh auth`, and creates the labels above.
+2. **Queue work.** Add `loop:ready` to the issues you want handled; leave `loop:manual` on anything that needs a human.
+3. **Run the loop.**
+   ```
+   /loopcraft:loop-run 3
+   ```
+   For each ready issue, `loop-run` reads it as a backlog item, runs the full `loop-task` cycle (rubric → verifier → gate → `Loop-Verified` commit) on a per-item `loop/<id>` branch, then writes back a verdict comment plus a **draft PR** whose body says `Closes #<id>`.
+4. **You stay in control.** Review each draft PR; merging it lets GitHub auto-close the linked issue. loopcraft never merges to the default branch and never closes issues itself — an item it can't finish gets `loop:blocked` and is skipped next run.
 
 ## Roadmap
 

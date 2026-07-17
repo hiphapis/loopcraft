@@ -54,6 +54,9 @@ Loopcraft はまさにそのシステムを、インストール可能なプラ�
 - **Vault（ボールト）** — `.loop/memory/`、リポジトリと一緒に移動する純粋な Markdown ストア：`INDEX.md`（目次+統計）、`STATE.md`（セッション引き継ぎ）、`LEDGER.md`（失敗台帳）、`notes/`（蒸留された規則）。
 - **Distill（蒸留）** — 失敗を二度学ぶ代わりに vault の*検証済み*の再利用可能なノートに変える 5 段階プロトコル（Fail → Investigate → Verify → Distill → Consult）。
 - **Loop-Verified: n/m** — `loop-task` がコミット trailer に刻む印：独立した verifier による、m 個中 n 個の基準を満たした。あなたの監査証跡です。
+- **Backlog source（バックログソース）** — `loop-run` が作業キューを読み込む場所：ドキュメントセクション（`file`、デフォルト）、または `loop-init` で接続する外部システム（`github` / `jira` / `command`）。
+- **Adapter（アダプター）** — 1 つの provider 向けに `list`/`report` 契約を実装する小さなスクリプト（例：`.loop/adapters/github.sh`）。コアは vendor-neutral を保ち、`gh`/`jira` を呼び出すのはアダプターだけです。新しい provider 用のテンプレートとしてコピーしてください。
+- **Write-back** — `loop-run` がソース上の結果に対して行うこと：`none`、判定の `comment`、または `Closes #<id>` をリンクしてマージ時に項目を自動クローズさせる `draft-pr`。
 
 ## 提供機能
 
@@ -255,6 +258,41 @@ Obsidian を `.loop/memory/` に向ければ、生きた vault になります�
 | `draft-pr` | 項目ごとに 1 つ（`loop/<id>`） | feature ブランチのみ | プッシュして `Closes #<id>` 付きの **draft PR** を開く |
 
 loopcraft は issue をクローズしたり、デフォルトブランチへマージしたりすることは決してありません — 人間が draft PR をマージすると、プラットフォームがリンクされた issue を自動的にクローズします。feature ブランチへの push は `draft-pr` モード（オプトイン）でのみ発生し、それ以外のモードは push なしのままです。
+
+### GitHub セットアップ
+
+**GitHub Issue** を選ぶと `loop-init` がこれを代わりに書いてくれますが、その形はこうです — `.loop/config.json` の該当部分：
+
+```json
+"backlog": {
+  "source": "github",
+  "list": "bash .loop/adapters/github.sh list --label loop:ready",
+  "report": "bash .loop/adapters/github.sh report",
+  "writeback": "draft-pr",
+  "base": "main"
+}
+```
+
+一度きりのラベル（loop-init が作成を提案します）：
+
+```bash
+gh label create loop:ready   --description "loopcraft: pick up"
+gh label create loop:manual  --description "loopcraft: manual only (skip)"
+gh label create loop:blocked --description "loopcraft: escalated"
+```
+
+### GitHub, 最初から最後まで
+
+*GitHub Issues に対する代表的な `loop-run` の実行例 — あくまで例示であり、実際に採取したログではありません。*
+
+1. **一度だけオンボーディングします。** `loop-init` → ソースとして **GitHub Issue**、write-back として **draft-pr** を選びます。アダプターを `.loop/adapters/github.sh` にコピーし、`gh auth` を確認したうえで上記のラベルを作成します。
+2. **作業をキューに入れます。** 処理してほしい issue に `loop:ready` を付け、人間の対応が必要なものには `loop:manual` を残しておきます。
+3. **ループを実行します。**
+   ```
+   /loopcraft:loop-run 3
+   ```
+   準備ができた issue ごとに、`loop-run` はそれをバックログ項目として読み込み、項目単位の `loop/<id>` ブランチ上で `loop-task` サイクル一式（rubric → verifier → gate → `Loop-Verified` コミット）を実行し、その後に判定コメントと、本文に `Closes #<id>` と書かれた **draft PR** を書き戻します。
+4. **あなたが主導権を握ります。** 各 draft PR をレビューしてください。マージすれば GitHub がリンクされた issue を自動的にクローズします。loopcraft はデフォルトブランチへマージすることも issue を自ら閉じることも決してありません — 完了できなかった項目には `loop:blocked` が付き、次回の実行ではスキップされます。
 
 ## ロードマップ
 

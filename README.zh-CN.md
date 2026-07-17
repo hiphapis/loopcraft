@@ -54,6 +54,9 @@ Loopcraft 就是把这样一个系统做成了可安装的插件。在以下情�
 - **Vault（保险库）** — `.loop/memory/`，随仓库一起移动的纯 Markdown 存储：`INDEX.md`（目录+统计）、`STATE.md`（会话交接）、`LEDGER.md`（失败台账）、`notes/`（蒸馏出的规则）。
 - **Distill（蒸馏）** — 把失败变成 vault 中*经过验证的*可复用笔记的五阶段协议（Fail → Investigate → Verify → Distill → Consult），而不是让你把教训学两遍。
 - **Loop-Verified: n/m** — `loop-task` 在提交 trailer 中打的标记：由独立 verifier 判定，m 条标准中满足了 n 条。这是你的审计证迹。
+- **Backlog 来源** — `loop-run` 读取工作队列的地方：一个文档章节（`file`，默认），或是你在 `loop-init` 时接入的外部系统（`github` / `jira` / `command`）。
+- **Adapter（适配器）** — 为某个 provider 实现 `list`/`report` 契约的小脚本（例如 `.loop/adapters/github.sh`）。核心始终保持 vendor-neutral；唯一调用 `gh`/`jira` 的地方就是适配器。把它复制一份，作为新 provider 的模板。
+- **Write-back** — `loop-run` 对来源上的结果所做的事：`none`、判定 `comment`，或是链接 `Closes #<id>` 的 `draft-pr`，让你合并时自动关闭该条目。
 
 ## 功能一览
 
@@ -255,6 +258,41 @@ vault 没有数据库，也不依赖任何应用。每条笔记都是带 YAML fr
 | `draft-pr` | 每个项目 1 个（`loop/<id>`） | 仅 feature 分支 | 推送并打开带 `Closes #<id>` 的 **draft PR** |
 
 loopcraft 绝不会关闭 issue 或合并到默认分支 — 由人合并 draft PR，平台会自动关闭关联的 issue。仅在 `draft-pr` 模式（opt-in）下才会推送 feature 分支；其他所有模式都保持不推送。
+
+### GitHub 设置
+
+当你选择 **GitHub Issue** 时，`loop-init` 会替你写好这些内容，但它的样子是这样的 — `.loop/config.json` 中相关的部分：
+
+```json
+"backlog": {
+  "source": "github",
+  "list": "bash .loop/adapters/github.sh list --label loop:ready",
+  "report": "bash .loop/adapters/github.sh report",
+  "writeback": "draft-pr",
+  "base": "main"
+}
+```
+
+一次性标签（loop-init 会主动提出帮你创建）：
+
+```bash
+gh label create loop:ready   --description "loopcraft: pick up"
+gh label create loop:manual  --description "loopcraft: manual only (skip)"
+gh label create loop:blocked --description "loopcraft: escalated"
+```
+
+### GitHub，从头到尾
+
+*一次针对 GitHub Issues 的典型 `loop-run` 运行 — 仅作说明，并非真实抓取的日志。*
+
+1. **只需上手一次。** `loop-init` → 选择 **GitHub Issue** 作为来源，write-back 选 **draft-pr**。它会把适配器复制到 `.loop/adapters/github.sh`，检查 `gh auth`，并创建上面那些标签。
+2. **把工作排入队列。** 给想要处理的 issue 加上 `loop:ready`；需要人工处理的则保留 `loop:manual`。
+3. **运行循环。**
+   ```
+   /loopcraft:loop-run 3
+   ```
+   对每个 ready 的 issue，`loop-run` 会把它当作一个 backlog 项目读取，在按项目划分的 `loop/<id>` 分支上运行完整的 `loop-task` 循环（rubric → verifier → gate → `Loop-Verified` 提交），然后写回一条判定评论，并附带一个正文写着 `Closes #<id>` 的 **draft PR**。
+4. **主动权始终在你手上。** 审阅每一个 draft PR；合并后 GitHub 会自动关闭关联的 issue。loopcraft 绝不会合并到默认分支，也绝不会自己关闭 issue — 无法完成的项目会被打上 `loop:blocked`，下一次运行时跳过。
 
 ## 路线图
 
