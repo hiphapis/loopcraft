@@ -20,6 +20,6 @@ Targets: every change to a `.md` file in the repository — `skills/**/SKILL.md`
    - How to verify: compare `ls skills` against `grep -oE '/loopcraft:[a-z-]+' README.md`.
    - Pass condition: every `skills/*` directory name is mentioned in `README.md` (a docs-only change that renames no existing skill satisfies this automatically).
 
-4. **Link integrity**: relative-path markdown links (`[text](path)`, excluding http(s)) point to files that actually exist.
-   - How to verify: extract links with `grep -oE '\]\([^)]+\)'`, then check each path for file existence.
+4. **Link integrity**: relative-path markdown links (`[text](path)`, excluding http(s)) point to files that actually exist. Links inside backtick code spans — e.g. a `` `[text](path)` `` syntax example — are not real links and are excluded.
+   - How to verify: extract links with `grep -oE '\]\([^)]+\)'`, drop any match that sits inside inline code (backticks), then check each remaining path for file existence.
    - Pass condition: no broken relative-path links.

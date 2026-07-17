@@ -1,67 +1,67 @@
 ---
 name: loop-run
-description: backlog를 무인 순회하며 항목마다 loop-task 사이클(rubric·verifier·게이트·Loop-Verified 커밋)을 적용한다. 사용자가 자율 배치 실행을 명시적으로 개시할 때만 호출 — 개별 작업에는 loop-task를 직접 쓴다.
-argument-hint: "[최대 항목 수 (기본 3)]"
+description: Traverses the backlog unattended, applying the loop-task cycle (rubric · verifier · gate · Loop-Verified commit) to each item. Invoke only when the user explicitly starts an autonomous batch run — for individual work, use loop-task directly.
+argument-hint: "[max items (default 3)]"
 ---
 
-# Loop-Run — backlog 자율 러너
+# Loop-Run — autonomous backlog runner
 
-`.loop/config.json`이 없으면 중단하고 `/loopcraft:loop-init`을 안내하라.
+If `.loop/config.json` does not exist, stop and point to `/loopcraft:loop-init`.
 
-## 안전 계약 (어떤 경우에도 위반 금지)
+## Safety contract (never violate, under any circumstances)
 
-- **main 병합·push 금지.** 커밋은 현재 브랜치까지가 끝이다. main 반영은 항상 사람이 한다.
-- 현재 체크아웃이 main/master면 시작 전에 전용 브랜치를 만든다:
-  `git checkout -b loop-run/$(date +%F)`. 워크트리·피처 브랜치면 그대로 진행.
-- 항목당 재시도는 loop-task 규칙(maxRetries)을 따르고, **에스컬레이션된 항목이
-  연속 `autonomy.maxConsecutiveFails`(기본 2)개면 러너 전체를 중단**한다
-  (환경 문제일 가능성 — 계속 돌면 같은 실패만 쌓인다).
-- 처리 항목 수 상한: 인자(기본 3). 상한 도달 시 정상 종료.
+- **No main merge, no push.** Commits stop at the current branch. Landing on main is always a human's job.
+- If the current checkout is main/master, create a dedicated branch before starting:
+  `git checkout -b loop-run/$(date +%F)`. If it's a worktree/feature branch, proceed as is.
+- Per-item retries follow the loop-task rule (maxRetries), and **if `autonomy.maxConsecutiveFails`
+  (default 2) items are escalated in a row, stop the whole runner** (likely an environment problem —
+  keep running and you just pile up the same failure).
+- Cap on items processed: the argument (default 3). Terminate normally when the cap is reached.
 
-## 0. Run 시작
+## 0. Run start
 
-1. STATE.md·INDEX.md를 읽고(세션 주입분 포함) 관련 노트를 consult.
-2. run 저널 생성: `.loop/journal/run-$(date +%F-%H%M).md`
+1. Read STATE.md·INDEX.md (including the session-injected part) and consult relevant notes.
+2. Create the run journal: `.loop/journal/run-$(date +%F-%H%M).md`
    ```
-   # Loop-Run <ISO 일시> | 브랜치: <branch> | 시작 HEAD: <sha>
+   # Loop-Run <ISO datetime> | branch: <branch> | start HEAD: <sha>
 
-   | # | 항목 | 분류 | 결과 | 커밋 |
-   |---|------|------|------|------|
+   | # | item | class | result | commit |
+   |---|------|-------|--------|--------|
    ```
 
-## 1. 항목 선별 (Triage)
+## 1. Triage the items
 
-`config.backlog.file`에서 `config.backlog.section` 섹션의 항목들을 읽고 3분류한다:
+Read the items in the `config.backlog.section` section of `config.backlog.file` and sort into three:
 
-- **실행 가능**: 코드·문서 변경만으로 완결되고 외부 의존이 없다. 리포 안에서
-  검증 가능한 것.
-- **skip (부적합)**: 외부 프로비저닝(API 키·벤더 계약·DNS), 수동 QA(청취·육안),
-  의사결정 대기, 장시간 리소스(대량 생성·Docker 빌드)가 필요한 것 —
-  무인 실행 불가. run 저널에 `skip(사유)` 로 기록만 한다.
-- **무시**: 취소선·Resolved 표기 등 이미 끝난 항목.
+- **Actionable**: completes with code/docs changes alone, with no external dependency. Verifiable
+  within the repo.
+- **Skip (unfit)**: needs external provisioning (API keys, vendor contracts, DNS), manual QA
+  (listening, visual inspection), a pending decision, or long-running resources (bulk generation, Docker
+  builds) — can't run unattended. Just record it as `skip(reason)` in the run journal.
+- **Ignore**: already-finished items (strikethrough, "Resolved", etc.).
 
-실행 가능 항목이 여럿이면 **가장 작고 되돌리기 쉬운 것부터**. 하나도 없으면
-그 사실을 run 저널·STATE에 기록하고 종료한다 (빈손 종료도 정상 종료다).
+If there are several actionable items, take **the smallest and most easily reversible first**. If there
+are none, record that fact in the run journal·STATE and terminate (an empty-handed exit is a normal exit too).
 
-## 2. 항목 실행 — loop-task 사이클 재사용
+## 2. Execute an item — reuse the loop-task cycle
 
-각 항목에 `/loopcraft:loop-task` 프로토콜(rubric 결정 → consult → 마커 →
-maker → verifier → 게이트 → `Loop-Verified` 커밋 → verdict journal → 마커 삭제)을
-그대로 적용한다. 무인 특칙 3가지:
+Apply the `/loopcraft:loop-task` protocol to each item (pick rubric → consult → marker →
+maker → verifier → gate → `Loop-Verified` commit → verdict journal → delete marker) verbatim.
+Three unattended special rules:
 
-1. **에스컬레이션 시 사용자에게 물을 수 없다** → 마지막 Verdict 요약을 run 저널에
-   기록하고, 커밋 안 된 변경은 `git stash push -m "loop-run escalated: <항목>"`으로
-   보존한 뒤, STATE '열린 질문'에 항목을 추가하고 마커를 삭제하고 다음 항목으로.
-2. **테스트 파일이 필요한 작업** → 직접 작성하지 말고(테스트는 Codex 소유)
-   구현 + 테스트 스펙(무엇을 검증할지) 기록까지 수행, run 저널에
-   `Codex 후속 필요` 표기.
-3. 항목 실행 중 실패·발견이 있으면 `/loopcraft:distill`을 그 자리에서 수행.
+1. **You can't ask the user when escalating** → record the last Verdict summary in the run journal,
+   preserve uncommitted changes with `git stash push -m "loop-run escalated: <item>"`,
+   then add the item to STATE 'Open questions', delete the marker, and move to the next item.
+2. **Work that needs test files** → don't write them yourself (tests are Codex-owned);
+   do the implementation + record the test spec (what to verify), and mark
+   `Codex follow-up needed` in the run journal.
+3. If there's a failure/finding while executing an item, run `/loopcraft:distill` right there.
 
-항목이 끝날 때마다 run 저널의 해당 행을 갱신한다 (결과: done/escalated, 커밋 sha).
+Update the item's row in the run journal whenever an item finishes (result: done/escalated, commit sha).
 
-## 3. Run 종료
+## 3. Run end
 
-1. STATE.md 갱신: 처리/skip/escalated 항목, 커밋 목록, Codex 후속 목록, 다음 실행 제안.
-2. run 저널 말미에 합계 줄: `완료 n · skip n · escalated n · 커밋 n개`.
-3. 최종 보고에 포함: 항목별 결과 표, 커밋 해시들, **"main 반영은 사용자 결정"** 명시,
-   backlog 문서 갱신 제안(완료 항목의 취소선 처리는 사람 문서이므로 제안만).
+1. Update STATE.md: processed/skip/escalated items, commit list, Codex follow-up list, next-run suggestion.
+2. Add a totals line at the end of the run journal: `done n · skip n · escalated n · commits n`.
+3. Include in the final report: a per-item result table, the commit hashes, an explicit **"landing on main is the user's decision"**,
+   and a proposal to update the backlog doc (striking through done items is a human doc, so only propose it).

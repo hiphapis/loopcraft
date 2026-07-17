@@ -1,67 +1,67 @@
 ---
 name: loop-task
-description: 검증 가능한 산출물이 필요한 비자명한 구현·수정 작업을 rubric + 독립 verifier 채점 사이클로 수행한다. 코드·문서 작업을 시작하기 전에 호출. 단순 질문·탐색·한 줄 수정에는 사용하지 않는다.
-argument-hint: "[작업 설명]"
+description: Runs non-trivial implementation/fix work that needs a verifiable output through a rubric + independent verifier grading cycle. Invoke before starting code/docs work. Not for simple questions, exploration, or one-line fixes.
+argument-hint: "[task description]"
 ---
 
-# Loop-Task — rubric 기반 self-correction 사이클
+# Loop-Task — rubric-based self-correction cycle
 
-`.loop/config.json`이 없으면 이 스킬을 중단하고 `/loopcraft:loop-init`을 먼저 안내하라.
+If `.loop/config.json` does not exist, stop this skill and point the user to `/loopcraft:loop-init` first.
 
-## 0. Rubric 결정
+## 0. Pick the rubric
 
-- `config.json`의 `rubrics` 배열에서 작업 대상 파일과 글롭이 맞는 항목의 rubric을 쓴다
-  (`.loop/rubrics/<이름>.md`). 매칭이 없거나 애매하면 사용자에게 어떤 rubric을 쓸지 묻는다.
-- rubric 파일을 읽고, 기준 수와 게이트(frontmatter `gates`, 없으면 config 전역)를 파악한다.
+- From the `rubrics` array in `config.json`, use the rubric whose glob matches the files you're working on
+  (`.loop/rubrics/<name>.md`). If nothing matches, or it's ambiguous, ask the user which rubric to use.
+- Read the rubric file and note its criteria count and gates (frontmatter `gates`, else the config-wide gates).
 
 ## 1. Consult
 
-`.loop/memory/INDEX.md`에서 작업과 관련된 카테고리·태그의 노트를 찾아 읽는다.
-`verified: false` 노트는 가설로만 취급한다.
+Find and read notes for the categories/tags relevant to the task from `.loop/memory/INDEX.md`.
+Treat `verified: false` notes as hypotheses only.
 
-## 2. 마커 생성 (Stop gate 연동)
+## 2. Create the marker (Stop-gate integration)
 
 ```bash
-mkdir -p .loop/state && printf '%s | rubric=%s | started=%s\n' "<작업 한 줄>" "<rubric 이름>" "$(date +%F)" > .loop/state/current-task
+mkdir -p .loop/state && printf '%s | rubric=%s | started=%s\n' "<task one-liner>" "<rubric name>" "$(date +%F)" > .loop/state/current-task
 ```
-이 마커가 있는 동안 세션 종료는 stop-gate에 차단된다 — 채점을 끝내기 전에 떠날 수 없다.
+While this marker exists, ending the session is blocked by the stop-gate — you can't walk away before grading finishes.
 
-## 3. 작업 수행 (maker)
+## 3. Do the work (maker)
 
-시작 전 기준점을 기록해 둔다: `BASE=$(git rev-parse HEAD)`.
-작업을 수행하고 커밋은 아직 하지 않는다(워킹트리 상태로 채점).
+Record a baseline before starting: `BASE=$(git rev-parse HEAD)`.
+Do the work, but don't commit yet (grade against the working tree).
 
-## 4. Verifier 채점
+## 4. Verifier grading
 
-Agent 도구로 `subagent_type: "loopcraft:verifier"` (fresh 서브에이전트, **fork 금지**)를 호출한다.
-위임 프롬프트에 **다음만** 담는다 — 너의 추론·대화 내용·변명을 섞지 마라:
+Call `subagent_type: "loopcraft:verifier"` with the Agent tool (a fresh subagent, **no fork**).
+Put **only the following** in the delegation prompt — do not mix in your reasoning, your conversation, or excuses:
 
-1. rubric 전문 (파일 내용 그대로)
-2. 산출물: `git diff "$BASE"` 전문(길면 파일 경로 목록 + 변경 파일 절대경로) + 신규 파일 경로
-3. 게이트를 이미 돌렸다면 그 출력
+1. The full rubric (the file content verbatim)
+2. The output: the full `git diff "$BASE"` (if it's large, a list of changed file paths + their absolute paths) + paths of any new files
+3. The gate output, if you already ran it
 
-verifier의 Verdict에서 `결과:` 줄을 읽는다.
+Read the `Result:` line from the verifier's Verdict.
 
-## 5. 판정 처리
+## 5. Handle the ruling
 
-- **FAIL** → "FAIL 사유 요약"만 근거로 수정하고 4로 돌아간다. 재시도 상한은 rubric frontmatter `max_retries`가 있으면 그 값, 없으면 config `maxRetries`(기본 3).
-  초과 시 **에스컬레이션**: 마지막 Verdict를 사용자에게 보여주고 판단을 요청한다.
-  중단하는 경우 .loop/memory/STATE.md에 에스컬레이션 사유를 기록하고 마커를 삭제한다.
-- **Verdict의 '채점 불가 기준' 줄에 항목이 있으면** → 작업과 별개로 rubric 개정이 필요하다는 뜻.
-  완료 보고에 포함하고, `.loop/rubrics/<이름>.md` 수정을 제안한다 (스펙 §6).
-- **PASS** → 6으로.
+- **FAIL** → fix using only the "FAIL summary" as grounds, then go back to 4. The retry cap is the rubric frontmatter `max_retries` if present, else the config `maxRetries` (default 3).
+  On exceeding it, **escalate**: show the user the last Verdict and ask for a decision.
+  If you stop, record the escalation reason in .loop/memory/STATE.md and delete the marker.
+- **If the Verdict's "Unscorable criteria" line has entries** → it means the rubric needs revision, separate from the task itself.
+  Include it in the completion report and propose editing `.loop/rubrics/<name>.md` (spec §6).
+- **PASS** → go to 6.
 
-## 6. 게이트 → 커밋 → 정리
+## 6. Gate → commit → cleanup
 
-1. 게이트 실행(rubric frontmatter `gates` 우선, 없으면 config 전역). green 필수. 게이트가 fail이면 verifier FAIL과 동일하게 취급한다 — 수정 후 §4 재채점으로 돌아가며(재시도 카운트 공유), 마커는 유지한다.
-2. 커밋 — 메시지 말미에 트레일러 추가:
+1. Run the gates (rubric frontmatter `gates` first, else the config-wide gates). Green is required. If a gate fails, treat it exactly like a verifier FAIL — fix and return to §4 for re-grading (sharing the retry count), and keep the marker.
+2. Commit — add a trailer at the end of the message:
    ```
    Loop-Verified: <pass>/<total>
    ```
-3. verdict 전문을 `.loop/journal/$(date +%F)-<작업슬러그>.md`에 저장한다 (gitignored).
-4. 마커 삭제: `rm -f .loop/state/current-task`
-5. 이 사이클에서 실패·발견이 있었으면 `/loopcraft:distill`을 이어서 수행한다.
+3. Save the full verdict to `.loop/journal/$(date +%F)-<task-slug>.md` (gitignored).
+4. Delete the marker: `rm -f .loop/state/current-task`
+5. If there were failures/findings in this cycle, follow up with `/loopcraft:distill`.
 
-## 완료 보고에 포함할 것
+## Include in the completion report
 
-verdict 요약(N/M), 재시도 횟수, 커밋 해시, 채점 불가 기준(있으면), 증류된 노트(있으면).
+Verdict summary (N/M), retry count, commit hash, unscorable criteria (if any), distilled notes (if any).

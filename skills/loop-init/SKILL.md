@@ -1,43 +1,42 @@
 ---
 name: loop-init
-description: 프로젝트에 loopcraft를 온보딩한다 — 리포를 스캔해 게이트 명령을 탐지하고, 인터뷰로 backlog·rubric을 확정한 뒤 .loop/ 구조를 스캐폴딩한다. 프로젝트당 1회, 또는 설정 갱신 시 호출.
+description: Onboards loopcraft into a project — scans the repo to detect gate commands, confirms the backlog and rubrics through an interview, then scaffolds the .loop/ structure. Run once per project, or when refreshing the config.
 argument-hint: ""
 ---
 
-# Loop-Init — 프로젝트 온보딩
+# Loop-Init — project onboarding
 
-`.loop/`가 이미 있으면 "갱신 모드"로 동작한다: 기존 값을 기본값으로 보여주고 바꿀 것만 묻는다.
+If `.loop/` already exists, run in "refresh mode": show existing values as defaults and only ask about what changes.
 
-## 1. 리포 스캔 (묻기 전에 스스로 찾는다)
+## 1. Scan the repo (find things yourself before asking)
 
-- 게이트 후보: `package.json`의 scripts(typecheck/lint/test/build), `Makefile`,
-  `pyproject.toml` 등에서 검출. 검출 결과를 제안 기본값으로.
-- backlog 후보: `docs/` 아래 TODO·backlog·status 류 문서, README의 로드맵 섹션.
-- 작업 유형: 리포 구성(코드 언어, docs 비중)으로 rubric 초안 종류를 정한다
-  (기본: `code` + `docs` 2종).
+- Gate candidates: detect from `package.json` scripts (typecheck/lint/test/build), a `Makefile`,
+  `pyproject.toml`, etc. Offer the detected results as default suggestions.
+- Backlog candidates: TODO/backlog/status-type docs under `docs/`, the roadmap section of the README.
+- Work types: decide which starter rubrics to draft from the repo makeup (code language, share of docs)
+  (default: `code` + `docs`, two of them).
 
-## 2. 인터뷰 (AskUserQuestion — 한 번에 하나씩)
+## 2. Interview (AskUserQuestion — one at a time)
 
-① 게이트 명령 확정 ② backlog 파일·섹션 ③ rubric 초안 검토 — 각 기준을 보여주고
-프로젝트에 맞게 다듬는다. **모든 기준은 "검증 방법 + 통과 조건"이 있어야 한다**고
-안내하고, 채점 불가능한 기준("코드가 깔끔하다")은 받아들이지 말고 검증 가능한
-형태로 재작성하도록 돕는다.
+① Confirm the gate commands ② the backlog file/section ③ review the starter rubrics — show each criterion
+and tune it to the project. Explain that **every criterion must have a "how to verify" + "pass condition"**,
+and don't accept an unscorable criterion ("the code is clean") — help rewrite it into a verifiable form.
 
-## 3. 스캐폴딩
+## 3. Scaffold
 
-- `.loop/config.json` — 인터뷰 결과로. `rubrics`는 `[{"glob": "...", "rubric": "code"}, ...]`.
-- `.loop/memory/INDEX.md`·`STATE.md`·`LEDGER.md` — 아래 템플릿 그대로(날짜만 오늘로):
+- `.loop/config.json` — from the interview results. `rubrics` is `[{"glob": "...", "rubric": "code"}, ...]`.
+- `.loop/memory/INDEX.md`·`STATE.md`·`LEDGER.md` — from the templates below verbatim (only the date set to today):
 
-INDEX.md: `# Memory Index\n\n> 노트 0 · verified 0% · 갱신: <오늘>\n\n## debugging\n\n## pattern\n\n## environment\n\n## decision`
-STATE.md: `# STATE — 세션 인계\n\n> 갱신: <오늘>\n\n## 지금 하던 것\n- (없음)\n\n## 다음 단계\n- (없음)\n\n## 열린 질문\n- (없음)\n\n## 최근 결정\n- (없음)`
-LEDGER.md: `# LEDGER — 실패 원장\n\n> 단계: fail → investigate → verify → distilled\n\n| 날짜 | 증상 | 단계 | 노트 |\n|------|------|------|------|`
+INDEX.md: `# Memory Index\n\n> notes 0 · verified 0% · updated: <today>\n\n## debugging\n\n## pattern\n\n## environment\n\n## decision`
+STATE.md: `# STATE — session handoff\n\n## Working on\n- (none)\n\n## Next steps\n- (none)\n\n## Open questions\n- (none)\n\n## Recent decisions\n- (none)`
+LEDGER.md: `# LEDGER — failure ledger\n\n> stages: fail → investigate → verify → distilled\n\n| date | symptom | stage | note |\n|------|------|------|------|`
 
-- `.loop/rubrics/<이름>.md` — 인터뷰에서 확정된 기준으로. frontmatter는
-  `name`(필수), `gates`·`max_retries`(선택 — config 오버라이드시만).
-- `.gitignore`에 `.loop/journal/`·`.loop/state/`·`.loop/memory/.obsidian/workspace.json` 3줄 추가(중복 추가 금지 — 있으면 스킵). 셋째 줄은 사용자가 `.loop/memory/`를 Obsidian vault로 열 때 생성되는 창-배치 상태 파일로, 사용자·기기별로 계속 바뀌어 커밋 노이즈가 되므로 무시한다. 나머지 `.obsidian/*.json`(그래프·외형·플러그인 설정)은 vault 뷰를 공유하는 값이라 커밋을 유지한다.
+- `.loop/rubrics/<name>.md` — from the criteria confirmed in the interview. Frontmatter is
+  `name` (required), `gates`·`max_retries` (optional — only when overriding the config).
+- Add three lines to `.gitignore`: `.loop/journal/`·`.loop/state/`·`.loop/memory/.obsidian/workspace.json` (don't add duplicates — skip if already present). The third is the window-layout state file created when the user opens `.loop/memory/` as an Obsidian vault; it keeps changing per user/machine and becomes commit noise, so ignore it. Keep the rest of `.obsidian/*.json` (graph, appearance, plugin settings) committed, since those are shared vault-view values.
 
-## 4. 마무리
+## 4. Wrap up
 
-- 프로젝트에 CLAUDE.md(또는 AGENTS.md)가 있으면 loopcraft 한 줄 인덱스 추가를 제안.
-- 생성 파일 전체를 보여주고 커밋을 제안한다 (`feat(loop): loopcraft 온보딩 — .loop 스캐폴딩`).
-- `.loop/memory/`는 커밋 대상임을 안내 (vault는 리포와 함께 이동).
+- If the project has a CLAUDE.md (or AGENTS.md), propose adding a one-line loopcraft index entry.
+- Show all generated files and propose a commit (`feat(loop): loopcraft onboarding — .loop scaffolding`).
+- Note that `.loop/memory/` is meant to be committed (the vault travels with the repo).
