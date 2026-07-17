@@ -1,6 +1,11 @@
 {
   "gates": ["./tests/run.sh"],
-  "backlog": { "file": "README.md", "section": "Roadmap" },
+  "backlog": {
+    "source": "github",
+    "list": "bash adapters/github.sh list --label loop:ready",
+    "report": "bash adapters/github.sh report",
+    "writeback": "comment"
+  },
   "rubrics": [
     { "glob": "**/*.sh", "rubric": "code" },
     { "glob": "**/*.md", "rubric": "docs" }
