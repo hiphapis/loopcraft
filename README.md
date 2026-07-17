@@ -237,6 +237,25 @@ The vault has no database and no app dependency. Every note is plain markdown wi
 
 Point Obsidian at `.loop/memory/` and it becomes a live vault: the graph view shows how distilled rules link together, backlinks surface related failures, and frontmatter (`category`, `verified`, `confidence`) turns into searchable metadata. Nothing about the loop *requires* Obsidian — it's just a good way to *see* what the system has learned. Prefer the terminal? `git log -- .loop/memory/` shows what the loop learned, and when.
 
+## Backlog sources & write-back
+
+The autonomous runner (`loop-run`) reads its work queue from a pluggable **backlog source**, chosen during `loop-init`:
+
+- **file** (default) — a document section you designate, e.g. `docs/project-status.md` § "Ready to Execute".
+- **github** / **jira** / **command** — loopcraft runs the `list`/`report` commands you configure. The core never calls vendor tools directly; a bundled GitHub adapter (`.loop/adapters/github.sh`) is the reference implementation, and other providers copy it as a template.
+
+`list` emits a normalized JSON array (`id`, `title`, `body`, `ref`, `skip`); `report` receives the outcome via `LOOP_*` env vars. For the GitHub adapter, `skip` is set by a `loop:manual` (manual-only, skip) or `loop:blocked` (previously escalated) label on the issue.
+
+**Write-back** (`backlog.writeback`, default `none`):
+
+| Mode | Branches | Pushes | On completion |
+|------|----------|--------|---------------|
+| `none` | one per run | no | nothing |
+| `comment` | one per run | no | comments the verdict on the item |
+| `draft-pr` | one per item (`loop/<id>`) | feature branch only | pushes and opens a **draft PR** with `Closes #<id>` |
+
+loopcraft never closes issues or merges to the default branch — a human merges the draft PR and the platform auto-closes the linked issue. Feature-branch push happens only in `draft-pr` mode (opt-in); every other mode stays push-free.
+
 ## Roadmap
 
 - **Phase 1 — Memory** ✅: hooks, distill protocol, vault.

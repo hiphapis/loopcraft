@@ -237,6 +237,25 @@ vault 没有数据库，也不依赖任何应用。每条笔记都是带 YAML fr
 
 把 Obsidian 指向 `.loop/memory/`，它就变成一个活的 vault：图谱视图显示蒸馏规则之间如何相互链接，反向链接让相关的失败浮现，frontmatter（`category`、`verified`、`confidence`）成为可搜索的元数据。循环并不*需要* Obsidian — 它只是*观察*系统学到了什么的一个好方式。更喜欢终端？`git log -- .loop/memory/` 会告诉你循环在何时学到了什么。
 
+## Backlog 来源与 write-back
+
+自主运行器（`loop-run`）从 `loop-init` 时选定的可插拔 **backlog 来源** 中读取工作队列：
+
+- **file**（默认）— 你指定的文档章节，例如 `docs/project-status.md` 中的 "Ready to Execute" 一节。
+- **github** / **jira** / **command** — loopcraft 运行你配置的 `list`/`report` 命令。核心从不直接调用 vendor 工具 — 内置的 GitHub 适配器（`.loop/adapters/github.sh`）是参考实现，其他 provider 复制它作为模板。
+
+`list` 输出规范化的 JSON 数组（`id`、`title`、`body`、`ref`、`skip`）；`report` 通过 `LOOP_*` 环境变量接收结果。对于 GitHub 适配器，`skip` 由 issue 上的 `loop:manual`（仅限人工处理，skip）或 `loop:blocked`（此前已 escalate）标签设置。
+
+**Write-back**（`backlog.writeback`，默认 `none`）：
+
+| 模式 | 分支 | 推送 | 完成时 |
+|------|----------|--------|---------------|
+| `none` | 每次运行 1 个 | 无 | 无 |
+| `comment` | 每次运行 1 个 | 无 | 在项目上评论判定结果 |
+| `draft-pr` | 每个项目 1 个（`loop/<id>`） | 仅 feature 分支 | 推送并打开带 `Closes #<id>` 的 **draft PR** |
+
+loopcraft 绝不会关闭 issue 或合并到默认分支 — 由人合并 draft PR，平台会自动关闭关联的 issue。仅在 `draft-pr` 模式（opt-in）下才会推送 feature 分支；其他所有模式都保持不推送。
+
 ## 路线图
 
 - **Phase 1 — Memory** ✅：钩子、蒸馏协议、vault。

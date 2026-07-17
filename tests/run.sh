@@ -5,6 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SESSION_START="$ROOT_DIR/hooks/scripts/session-start.sh"
 STOP_GATE="$ROOT_DIR/hooks/scripts/stop-gate.sh"
 PRE_COMPACT="$ROOT_DIR/hooks/scripts/pre-compact.sh"
+ADAPTER_GH="$ROOT_DIR/adapters/github.sh"
 
 PASS=0
 FAIL=0
@@ -121,6 +122,16 @@ assert_json_one_line() {
     printf '%s\ninvalid JSON: [%s]\n' "$message" "$json"
     return 1
   }
+}
+
+# Create a bin stub: $1=case directory, $2=command name, $3=body script → prints the bin directory path to add to PATH
+make_bin_stub() {
+  local casedir="$1" name="$2" body="$3" bindir
+  bindir="$casedir/bin"
+  mkdir -p "$bindir"
+  printf '#!/usr/bin/env bash\n%s\n' "$body" > "$bindir/$name"
+  chmod +x "$bindir/$name"
+  printf '%s\n' "$bindir"
 }
 
 test_case() {
@@ -485,6 +496,117 @@ pre_compact_loop_disable_silent() {
     assert_eq "" "$CAPTURE_OUT" "pre-compact is silent with LOOP_DISABLE"
 }
 
+adapter_list_maps_fields_and_skip() {
+  local dir bindir cap fixture out id title body ref skip skipreason nullbody args
+  dir="$(new_tmp_dir)"; cap="$dir/gh.log"; fixture="$dir/issues.json"
+  cat > "$fixture" <<'JSON'
+[
+  {"number":42,"title":"fix login","body":"do it","url":"https://gh/issues/42","labels":[{"name":"loop:ready"}]},
+  {"number":7,"title":"manual QA","body":null,"url":"https://gh/issues/7","labels":[{"name":"loop:ready"},{"name":"loop:manual"}]}
+]
+JSON
+  bindir="$(make_bin_stub "$dir" gh 'printf "%s\n" "$*" >> "'"$cap"'"; cat "'"$fixture"'"')"
+  out="$(PATH="$bindir:$PATH" bash "$ADAPTER_GH" list --label loop:ready)"
+  args="$(cat "$cap")"
+  id="$(printf '%s' "$out" | jq -r '.[0].id')"
+  title="$(printf '%s' "$out" | jq -r '.[0].title')"
+  body="$(printf '%s' "$out" | jq -r '.[0].body')"
+  ref="$(printf '%s' "$out" | jq -r '.[0].ref')"
+  skip="$(printf '%s' "$out" | jq -r '.[1].skip')"
+  skipreason="$(printf '%s' "$out" | jq -r '.[1].skipReason')"
+  nullbody="$(printf '%s' "$out" | jq -r '.[1].body')"
+  assert_eq "42" "$id" "list maps number→id" &&
+    assert_eq "fix login" "$title" "list preserves title" &&
+    assert_eq "do it" "$body" "list preserves body" &&
+    assert_eq "https://gh/issues/42" "$ref" "list maps url→ref" &&
+    assert_eq "true" "$skip" "loop:manual item is marked skip" &&
+    assert_eq "manual" "$skipreason" "skip item carries skipReason=manual" &&
+    assert_eq "" "$nullbody" "null body coalesces to empty string" &&
+    assert_contains "$args" "issue list" "adapter calls gh issue list" &&
+    assert_contains "$args" "--label loop:ready" "adapter passes the label filter to gh" &&
+    assert_contains "$args" "--json number,title,body,url,labels" "adapter requests the required fields" &&
+    assert_contains "$args" "--state open" "adapter requests open issues"
+}
+
+adapter_list_marks_blocked_skip() {
+  local dir bindir fixture out skip skipreason
+  dir="$(new_tmp_dir)"; fixture="$dir/issues.json"
+  cat > "$fixture" <<'JSON'
+[{"number":5,"title":"was escalated","body":"x","url":"https://gh/issues/5","labels":[{"name":"loop:ready"},{"name":"loop:blocked"}]}]
+JSON
+  bindir="$(make_bin_stub "$dir" gh 'cat "'"$fixture"'"')"
+  out="$(PATH="$bindir:$PATH" bash "$ADAPTER_GH" list --label loop:ready)"
+  skip="$(printf '%s' "$out" | jq -r '.[0].skip')"
+  skipreason="$(printf '%s' "$out" | jq -r '.[0].skipReason')"
+  assert_eq "true" "$skip" "loop:blocked item is marked skip (won't re-process)" &&
+    assert_eq "blocked" "$skipreason" "blocked item carries skipReason=blocked"
+}
+
+adapter_list_fails_when_gh_fails() {
+  local dir bindir status nonzero
+  dir="$(new_tmp_dir)"
+  bindir="$(make_bin_stub "$dir" gh 'exit 1')"
+  PATH="$bindir:$PATH" bash "$ADAPTER_GH" list --label loop:ready >/dev/null 2>&1
+  status=$?
+  nonzero=$([ "$status" -ne 0 ] && echo yes || echo no)
+  assert_eq "yes" "$nonzero" "list exits nonzero when gh fails (no empty-backlog masking)"
+}
+
+adapter_report_comment_only() {
+  local dir bindir cap
+  dir="$(new_tmp_dir)"; cap="$dir/gh.log"
+  bindir="$(make_bin_stub "$dir" gh 'printf "%s\n" "$*" >> "'"$cap"'"')"
+  PATH="$bindir:$PATH" LOOP_EVENT=verified LOOP_WRITEBACK=comment \
+    LOOP_ITEM_ID=42 LOOP_VERDICT=3/3 LOOP_COMMIT=abc123 LOOP_BRANCH=loop-run/x \
+    bash "$ADAPTER_GH" report
+  assert_contains "$(cat "$cap")" "issue comment 42" "comment mode comments on the issue" &&
+    assert_not_contains "$(cat "$cap")" "pr create" "comment mode does not open a PR"
+}
+
+adapter_report_draft_pr() {
+  local dir bindir cap
+  dir="$(new_tmp_dir)"; cap="$dir/gh.log"
+  bindir="$(make_bin_stub "$dir" gh 'printf "%s\n" "$*" >> "'"$cap"'"')"
+  PATH="$bindir:$PATH" LOOP_EVENT=verified LOOP_WRITEBACK=draft-pr \
+    LOOP_ITEM_ID=42 LOOP_VERDICT=3/3 LOOP_COMMIT=abc123 LOOP_BRANCH=loop/42 LOOP_BASE=main \
+    bash "$ADAPTER_GH" report
+  assert_contains "$(cat "$cap")" "pr create --draft" "draft-pr mode opens a draft PR" &&
+    assert_contains "$(cat "$cap")" "--head loop/42" "draft PR uses the item branch" &&
+    assert_contains "$(cat "$cap")" "Closes #42" "PR body links the issue for auto-close on merge" &&
+    assert_contains "$(cat "$cap")" "issue comment 42" "draft-pr mode also comments"
+}
+
+adapter_report_escalated() {
+  local dir bindir cap
+  dir="$(new_tmp_dir)"; cap="$dir/gh.log"
+  bindir="$(make_bin_stub "$dir" gh 'printf "%s\n" "$*" >> "'"$cap"'"')"
+  PATH="$bindir:$PATH" LOOP_EVENT=escalated LOOP_WRITEBACK=draft-pr \
+    LOOP_ITEM_ID=42 LOOP_NOTE="max retries" \
+    bash "$ADAPTER_GH" report
+  assert_contains "$(cat "$cap")" "issue edit 42 --add-label loop:blocked" "escalated adds blocked label" &&
+    assert_contains "$(cat "$cap")" "issue comment 42" "escalated comments the reason" &&
+    assert_not_contains "$(cat "$cap")" "pr create" "escalated does not open a PR"
+}
+
+backlog_list_command_from_config_yields_contract() {
+  local dir bindir cfgcmd out id
+  dir="$(new_tmp_dir)"; mkdir -p "$dir/.loop/adapters"
+  cp "$ROOT_DIR/adapters/github.sh" "$dir/.loop/adapters/github.sh"
+  bindir="$(make_bin_stub "$dir" gh 'cat <<'"'"'JSON'"'"'
+[{"number":9,"title":"t","body":"b","url":"https://gh/issues/9","labels":[{"name":"loop:ready"}]}]
+JSON')"
+  cat > "$dir/.loop/config.json" <<JSON
+{ "backlog": { "source": "github",
+  "list": "bash $dir/.loop/adapters/github.sh list --label loop:ready",
+  "report": "bash $dir/.loop/adapters/github.sh report",
+  "writeback": "comment" } }
+JSON
+  cfgcmd="$(jq -r '.backlog.list' "$dir/.loop/config.json")"
+  out="$(PATH="$bindir:$PATH" bash -c "$cfgcmd")"
+  id="$(printf '%s' "$out" | jq -r '.[0].id')"
+  assert_eq "9" "$id" "config.backlog.list command yields the normalized contract"
+}
+
 test_case "session-start: no .loop/memory is silent" session_start_no_memory
 test_case "session-start: LOOP_DISABLE is silent" session_start_loop_disable
 test_case "session-start: INDEX and STATE are included" session_start_includes_index_and_state
@@ -513,6 +635,13 @@ test_case "stop-gate: sanitizes malicious session_id" stop_gate_sanitizes_sessio
 test_case "pre-compact: emits valid JSON with systemMessage" pre_compact_json_context
 test_case "pre-compact: no .loop is silent" pre_compact_no_loop_silent
 test_case "pre-compact: LOOP_DISABLE is silent" pre_compact_loop_disable_silent
+test_case "adapter/github: list maps fields and skip label" adapter_list_maps_fields_and_skip
+test_case "adapter/github: list marks loop:blocked as skip" adapter_list_marks_blocked_skip
+test_case "adapter/github: list propagates gh failure" adapter_list_fails_when_gh_fails
+test_case "adapter/github: report comment-only" adapter_report_comment_only
+test_case "adapter/github: report draft-pr opens PR with Closes" adapter_report_draft_pr
+test_case "adapter/github: report escalated labels blocked" adapter_report_escalated
+test_case "backlog: config list command yields contract" backlog_list_command_from_config_yields_contract
 
 printf '\n%d passed, %d failed\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]

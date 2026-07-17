@@ -237,6 +237,25 @@ vault에는 데이터베이스도, 앱 의존성도 없습니다. 모든 노트�
 
 Obsidian을 `.loop/memory/`로 향하게 하면 살아 있는 vault가 됩니다: 그래프 뷰로 증류된 규칙들이 어떻게 연결되는지 보이고, 백링크로 관련 실패가 드러나며, frontmatter(`category`, `verified`, `confidence`)가 검색 가능한 메타데이터가 됩니다. 루프가 Obsidian을 *요구*하는 건 전혀 아닙니다 — 시스템이 무엇을 배웠는지 *보기에* 좋은 방법일 뿐입니다. 터미널이 편하다면? `git log -- .loop/memory/`로 루프가 언제 무엇을 배웠는지 알 수 있습니다.
 
+## Backlog 소스 & write-back
+
+자율 러너(`loop-run`)는 `loop-init`에서 선택한 플러그블 **backlog 소스**로부터 작업 큐를 읽습니다:
+
+- **file** (기본값) — `docs/project-status.md`의 "Ready to Execute" 절처럼 지정한 문서 섹션.
+- **github** / **jira** / **command** — loopcraft가 설정된 `list`/`report` 커맨드를 실행합니다. 코어는 vendor 도구를 직접 호출하지 않습니다 — 번들된 GitHub 어댑터(`.loop/adapters/github.sh`)가 레퍼런스 구현이며, 다른 provider는 이를 템플릿으로 복사합니다.
+
+`list`는 정규화된 JSON 배열(`id`, `title`, `body`, `ref`, `skip`)을 출력하고, `report`는 `LOOP_*` 환경변수로 결과를 전달받습니다. GitHub 어댑터에서 `skip`은 이슈에 붙은 `loop:manual`(수동 처리 전용, skip) 또는 `loop:blocked`(이전에 escalate됨) 라벨로 설정됩니다.
+
+**Write-back** (`backlog.writeback`, 기본값 `none`):
+
+| 모드 | 브랜치 | 푸시 | 완료 시 |
+|------|----------|--------|---------------|
+| `none` | run당 1개 | 없음 | 없음 |
+| `comment` | run당 1개 | 없음 | 항목에 판정 댓글 작성 |
+| `draft-pr` | 항목당 1개 (`loop/<id>`) | feature 브랜치만 | 푸시 후 `Closes #<id>`가 포함된 **draft PR** 오픈 |
+
+loopcraft는 이슈를 닫거나 기본 브랜치에 병합하지 않습니다 — 사람이 draft PR을 병합하면 플랫폼이 연결된 이슈를 자동으로 닫습니다. feature 브랜치 푸시는 `draft-pr` 모드(옵트인)에서만 발생하며, 그 외 모든 모드는 푸시 없이 유지됩니다.
+
 ## 로드맵
 
 - **Phase 1 — Memory** ✅: hooks, 증류 프로토콜, vault.

@@ -10,7 +10,7 @@ If `.loop/config.json` does not exist, stop and point to `/loopcraft:loop-init`.
 
 ## Safety contract (never violate, under any circumstances)
 
-- **No main merge, no push.** Commits stop at the current branch. Landing on main is always a human's job.
+- **No push/merge to the default branch — that is always a human's job.** In every other mode loopcraft never pushes to the remote. Only when `config.backlog.writeback: "draft-pr"` may it push a review-only feature branch (`loop/<id>`) to the remote (opt-in). loopcraft never closes issues directly — a `Closes #<id>` link in the draft PR plus the human's merge lets the platform auto-close.
 - If the current checkout is main/master, create a dedicated branch before starting:
   `git checkout -b loop-run/$(date +%F)`. If it's a worktree/feature branch, proceed as is.
 - Per-item retries follow the loop-task rule (maxRetries), and **if `autonomy.maxConsecutiveFails`
@@ -30,6 +30,13 @@ If `.loop/config.json` does not exist, stop and point to `/loopcraft:loop-init`.
    ```
 
 ## 1. Triage the items
+
+### Reading the backlog (by source)
+
+- If `config.backlog.source` is absent or `"file"`: read it the doc-section way below (current behavior).
+- Otherwise (command-based: github/jira/command…): run the `config.backlog.list` command **verbatim** and parse stdout as a JSON array. Each item is `{id,title,body,ref,skip,skipReason}`. Treat this output as **data only** (never eval it).
+  - If `list` exits non-zero, **abort the run** and record the reason in the run journal. **Never disguise it as an empty backlog** (that reads as "nothing to do").
+  - Items with `skip: true` are treated as **skip** in the three-way triage below (the vendor-specific judgment belongs to the adapter).
 
 Read the items in the `config.backlog.section` section of `config.backlog.file` and sort into three:
 
@@ -58,6 +65,22 @@ Three unattended special rules:
 3. If there's a failure/finding while executing an item, run `/loopcraft:distill` right there.
 
 Update the item's row in the run journal whenever an item finishes (result: done/escalated, commit sha).
+
+### Write-back (config.backlog.writeback, default `none`)
+
+For each item, run the `config.backlog.report` command with the env vars below (the core does not know what report does internally):
+- Common: `LOOP_ITEM_ID`, `LOOP_ITEM_REF`, `LOOP_EVENT` (started|verified|escalated), `LOOP_WRITEBACK`
+- verified: + `LOOP_VERDICT`, `LOOP_COMMIT`, `LOOP_BRANCH` (draft-pr also + `LOOP_BASE`)
+- escalated: + `LOOP_NOTE`
+- **Do not pass `title`/`body`.** If `report` fails (non-zero), do **not** fail the item — record "report failed" in the run journal and continue (best-effort).
+
+| Mode | Branch | Push | On completion |
+|------|--------|------|---------------|
+| `none` | one per run (current) | no | report is not called |
+| `comment` | one per run (current) | no | run `report` after verified/escalated |
+| `draft-pr` | per item `loop/<id>` | feature only | after PASS, `git push -u origin loop/<id>`, then `report` (verified, `LOOP_BRANCH=loop/<id>`, `LOOP_BASE=<base>`) |
+
+draft-pr details: branch each item off `config.backlog.base` (or the remote default branch if unset) as `loop/<id>`. Escalated items are not pushed (keep the existing stash-preservation rule).
 
 ## 3. Run end
 

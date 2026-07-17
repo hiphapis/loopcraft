@@ -237,6 +237,25 @@ vault にはデータベースもアプリ依存もありません。すべて�
 
 Obsidian を `.loop/memory/` に向ければ、生きた vault になります：グラフビューで蒸留された規則同士のつながりが見え、バックリンクで関連する失敗が浮かび上がり、frontmatter（`category`、`verified`、`confidence`）が検索可能なメタデータになります。ループが Obsidian を*必要とする*わけではまったくありません — システムが何を学んだかを*見る*のに便利な方法というだけです。ターミナルが好みなら？ `git log -- .loop/memory/` でループがいつ何を学んだかがわかります。
 
+## バックログソース & write-back
+
+自律ランナー（`loop-run`）は、`loop-init` で選択したプラグ可能な **バックログソース** から作業キューを読み込みます：
+
+- **file**（デフォルト）— `docs/project-status.md` の "Ready to Execute" セクションのように指定したドキュメントセクション。
+- **github** / **jira** / **command** — loopcraft が設定された `list`/`report` コマンドを実行します。コアは vendor ツールを直接呼び出しません — バンドルされた GitHub アダプター（`.loop/adapters/github.sh`）がリファレンス実装であり、他の provider はこれをテンプレートとしてコピーします。
+
+`list` は正規化された JSON 配列（`id`, `title`, `body`, `ref`, `skip`）を出力し、`report` は `LOOP_*` 環境変数で結果を受け取ります。GitHub アダプターでは、issue に付いた `loop:manual`（手動対応専用、skip）または `loop:blocked`（過去に escalate 済み）ラベルによって `skip` が設定されます。
+
+**Write-back**（`backlog.writeback`、デフォルト `none`）：
+
+| モード | ブランチ | プッシュ | 完了時 |
+|------|----------|--------|---------------|
+| `none` | run ごとに 1 つ | なし | なし |
+| `comment` | run ごとに 1 つ | なし | 項目に判定コメントを残す |
+| `draft-pr` | 項目ごとに 1 つ（`loop/<id>`） | feature ブランチのみ | プッシュして `Closes #<id>` 付きの **draft PR** を開く |
+
+loopcraft は issue をクローズしたり、デフォルトブランチへマージしたりすることは決してありません — 人間が draft PR をマージすると、プラットフォームがリンクされた issue を自動的にクローズします。feature ブランチへの push は `draft-pr` モード（オプトイン）でのみ発生し、それ以外のモードは push なしのままです。
+
 ## ロードマップ
 
 - **Phase 1 — Memory** ✅: フック、蒸留プロトコル、vault。
