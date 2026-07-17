@@ -260,7 +260,7 @@ loopcraft 绝不会关闭 issue 或合并到默认分支 — 由人合并 draft 
 
 - **Phase 1 — Memory** ✅：钩子、蒸馏协议、vault。
 - **Phase 2 — Self-correction** ✅：可验证的评分标准（rubric）、不看 maker 推理过程、只对产出打分的独立 verifier 子代理、`/loop-task` 自我纠正循环、`/loop-init` 引导式初始化。
-- **Phase 3 — 自主运行器**（当前版本）：`/loop-run` 无人值守地遍历 backlog — 工作 → 验证 → 门禁 → 提交 → 蒸馏。提交只到 worktree 为止，合并到 main 永远由人决定。
+- **Phase 3 — 自主运行器**（当前版本）：`/loop-run` 无人值守地遍历 backlog — 工作 → 验证 → 门禁 → 提交 → 蒸馏。支持可插拔的 backlog 来源（file/GitHub/Jira）与 write-back（comment / draft-PR）。提交只到 worktree 为止，合并到 main 永远由人决定。
 
 ## 环境要求
 

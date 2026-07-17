@@ -260,7 +260,7 @@ loopcraft never closes issues or merges to the default branch — a human merges
 
 - **Phase 1 — Memory** ✅: hooks, distill protocol, vault.
 - **Phase 2 — Self-correction** ✅: verifiable rubrics, an independent verifier subagent that grades outputs without seeing the maker's reasoning, `/loop-task` self-correction cycles, `/loop-init` onboarding interview.
-- **Phase 3 — Autonomous runner** (this release): `/loop-run` iterates a backlog unattended — work → verify → gate → commit → distill — commits stay in a worktree; merging to main always requires a human.
+- **Phase 3 — Autonomous runner** (this release): `/loop-run` iterates a backlog unattended — work → verify → gate → commit → distill — with pluggable backlog sources (file/GitHub/Jira) and write-back (comment / draft-PR); commits stay in a worktree; merging to main always requires a human.
 
 ## Requirements
 
