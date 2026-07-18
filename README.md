@@ -74,7 +74,7 @@ The rest of the vocabulary this README uses:
 | **`/loopcraft:distill` skill** | A 5-stage failure-to-knowledge protocol: **Fail → Investigate → Verify → Distill → Consult**. Failures become *verified*, general rules in your vault — merged into existing notes first, never duplicated. |
 | **Obsidian-compatible vault** | `.loop/memory/` is plain markdown with YAML frontmatter and `[[wikilinks]]`. Open it as an Obsidian vault and watch the knowledge graph grow. No app dependency — the loop only needs files. |
 | **`verifier` subagent** | An independent grader that scores your work against a rubric — seeing only the output and criteria, not your reasoning. Prevents maker bias from clouding judgment. |
-| **`/loopcraft:loop-task` skill** | Maker → verifier → retry → gate → commit cycle: submit a task description, get a verdict summary, then automatically stamp `Loop-Verified: n/m` in the commit trailer for audited work. |
+| **`/loopcraft:loop-task` skill** | Maker → verifier → retry → gate → commit cycle: submit a task description, get a verdict summary, then automatically stamp `Loop-Verified: n/m` in the commit trailer for audited work. Pass a leading `#123` / issue key and it also comments the verdict on that item (when a write-back source is configured). |
 | **`/loopcraft:loop-init` skill** | Scans your repo and interviews you to scaffold `.loop/` with configured gates and a rubric starter. One-command project onboarding. |
 | **`/loopcraft:loop-run` skill** | Autonomously traverses your backlog unattended — selects items, runs loop-task cycles, gates them, and commits all work to a worktree. All commits stay in the worktree; merging to main always remains your call — the system only executes, it never pushes to the repo. |
 

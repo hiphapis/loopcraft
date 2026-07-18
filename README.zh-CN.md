@@ -74,7 +74,7 @@ Loopcraft 就是把这样一个系统做成了可安装的插件。在以下情�
 | **`/loopcraft:distill` 技能** | 把失败转化为知识的五阶段协议：**Fail → Investigate → Verify → Distill → Consult**。失败会变成 vault 中*经过验证的*通用规则 — 优先合并进已有笔记，绝不重复。 |
 | **Obsidian 兼容 vault** | `.loop/memory/` 是带 YAML frontmatter 和 `[[双链]]` 的纯 Markdown。用 Obsidian 打开即可观察知识图谱的生长。不依赖任何应用 — 循环只需要文件。 |
 | **`verifier` 子代理** | 根据你的评分标准（rubric）独立对产出打分的评估者。只看产出和标准，不看 maker 的推理过程。完全阻断 maker 的主观偏差。 |
-| **`/loopcraft:loop-task` 技能** | Maker → verifier → 重试 → 门禁 → 提交的循环：提交任务说明，收到 verifier 的判定摘要，合格时自动在提交 trailer 中记录 `Loop-Verified: n/m`。留下审计证迹。 |
+| **`/loopcraft:loop-task` 技能** | Maker → verifier → 重试 → 门禁 → 提交的循环：提交任务说明，收到 verifier 的判定摘要，合格时自动在提交 trailer 中记录 `Loop-Verified: n/m`。留下审计证迹。在开头加上 `#123` / issue key，还会在该项目上评论判定结果（当配置了 write-back 来源时）。 |
 | **`/loopcraft:loop-init` 技能** | 扫描仓库并与你面谈，用已配置的门禁和 rubric 初案自动搭建 `.loop/`。一条命令完成项目引导。 |
 | **`/loopcraft:loop-run` 技能** | 无人值守地遍历 backlog — 自动选别项目、执行 loop-task 循环、通过门禁、提交更改，全部自动化。所有提交只到 worktree 为止，合并到 main 永远由你决定 — 系统只是执行，绝不会推送到仓库。 |
 

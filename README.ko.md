@@ -74,7 +74,7 @@ Loopcraft는 바로 그 시스템을 설치 가능한 플러그인으로 만든 
 | **`/loopcraft:distill` 스킬** | 실패를 지식으로 바꾸는 5단계 프로토콜: **Fail → Investigate → Verify → Distill → Consult**. 실패가 *검증된* 일반 규칙이 되어 vault에 남습니다 — 기존 노트 갱신을 우선해 중복이 생기지 않습니다. |
 | **Obsidian 호환 vault** | `.loop/memory/`는 YAML frontmatter와 `[[위키링크]]`를 쓰는 순수 마크다운입니다. Obsidian vault로 열면 지식 그래프가 자라는 것을 볼 수 있습니다. 앱 의존성 없음 — 루프에 필요한 건 파일뿐입니다. |
 | **`verifier` 서브에이전트** | 당신의 rubric에 따라 산출물을 독립적으로 채점하는 심사자입니다. maker의 추론은 보지 않고 결과물과 기준만 봅니다. maker 바이어스를 원천 차단합니다. |
-| **`/loopcraft:loop-task` 스킬** | Maker → verifier → 재시도 → 게이트 → 커밋 순환: 작업 설명을 제출하면 판정 요약을 받고, 통과 시 커밋 트레일러에 `Loop-Verified: n/m`을 자동 기록합니다. 감사 추적이 남는 작업입니다. |
+| **`/loopcraft:loop-task` 스킬** | Maker → verifier → 재시도 → 게이트 → 커밋 순환: 작업 설명을 제출하면 판정 요약을 받고, 통과 시 커밋 트레일러에 `Loop-Verified: n/m`을 자동 기록합니다. 감사 추적이 남는 작업입니다. 앞에 `#123` / 이슈 키를 붙이면 해당 항목에도 판정 댓글을 남깁니다(write-back 소스가 설정된 경우). |
 | **`/loopcraft:loop-init` 스킬** | 리포를 스캔하고 당신과 인터뷰해서 `.loop/`를 설정된 게이트와 rubric 초안으로 스캐폴딩합니다. 한 명령으로 프로젝트 온보딩 완료. |
 | **`/loopcraft:loop-run` 스킬** | backlog를 무인으로 순회 — 항목 선별, loop-task 사이클 실행, 게이트 통과, 커밋을 모두 자동화합니다. 모든 커밋은 워크트리까지만, main 병합은 항상 당신의 결정입니다 — 시스템은 실행만 하고 절대 리포에 푸시하지 않습니다. |
 

@@ -1,12 +1,14 @@
 ---
 name: loop-task
 description: Runs non-trivial implementation/fix work that needs a verifiable output through a rubric + independent verifier grading cycle. Invoke before starting code/docs work. Not for simple questions, exploration, or one-line fixes.
-argument-hint: "[task description]"
+argument-hint: "[optional #id / issue-key] [task description]"
 ---
 
 # Loop-Task — rubric-based self-correction cycle
 
 If `.loop/config.json` does not exist, stop this skill and point the user to `/loopcraft:loop-init` first.
+
+If the argument starts with a `#N` (GitHub) or an issue key (e.g. `ABC-123`), treat that token as an optional **write-back target** and the rest as the task description (used in §6). No such token → no write-back — a normal loop-task.
 
 ## 0. Pick the rubric
 
@@ -58,10 +60,13 @@ Read the `Result:` line from the verifier's Verdict.
    ```
    Loop-Verified: <pass>/<total>
    ```
-3. Save the full verdict to `.loop/journal/$(date +%F)-<task-slug>.md` (gitignored).
-4. Delete the marker: `rm -f .loop/state/current-task`
-5. If there were failures/findings in this cycle, follow up with `/loopcraft:distill`.
+3. **Write-back (opt-in)** — if the argument carried a `#id`/issue-key **and** `config.backlog.report` is configured, run it once (best-effort) to comment the verdict on that item:
+   `LOOP_ITEM_ID=<id> LOOP_EVENT=verified LOOP_WRITEBACK=comment LOOP_VERDICT=<pass>/<total> LOOP_COMMIT=<sha> LOOP_BRANCH=<branch> <config.backlog.report>`.
+   Don't pass `title`/`body`. If it fails, don't fail the task — note "report failed" in the report. Comment only (draft-pr is loop-run's). No id, or no `report` configured → skip.
+4. Save the full verdict to `.loop/journal/$(date +%F)-<task-slug>.md` (gitignored).
+5. Delete the marker: `rm -f .loop/state/current-task`
+6. If there were failures/findings in this cycle, follow up with `/loopcraft:distill`.
 
 ## Include in the completion report
 
-Verdict summary (N/M), retry count, commit hash, unscorable criteria (if any), distilled notes (if any).
+Verdict summary (N/M), retry count, commit hash, write-back result (if an id was given), unscorable criteria (if any), distilled notes (if any).

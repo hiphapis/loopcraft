@@ -74,7 +74,7 @@ Loopcraft はまさにそのシステムを、インストール可能なプラ�
 | **`/loopcraft:distill` スキル** | 失敗を知識に変える 5 段階プロトコル: **Fail → Investigate → Verify → Distill → Consult**。失敗が*検証済み*の一般規則として vault に残ります — 既存ノートの更新を優先し、重複は生じません。 |
 | **Obsidian 互換 vault** | `.loop/memory/` は YAML frontmatter と `[[ウィキリンク]]` を使う純粋な Markdown です。Obsidian の vault として開けば、知識グラフが育つ様子を観察できます。アプリ依存なし — ループに必要なのはファイルだけです。 |
 | **`verifier` サブエージェント** | あなたのルーブリックに基づいて、成果物を独立して採点する評価者です。maker の推論は見ず、産出物と基準だけを見ます。maker のバイアスを完全に遮断します。 |
-| **`/loopcraft:loop-task` スキル** | Maker → verifier → 再試行 → ゲート → コミットの循環：タスクの説明を提出すると、verifier の判定サマリを受け取り、合格時はコミット trailerに `Loop-Verified: n/m` を自動記録します。監査証跡が残る作業です。 |
+| **`/loopcraft:loop-task` スキル** | Maker → verifier → 再試行 → ゲート → コミットの循環：タスクの説明を提出すると、verifier の判定サマリを受け取り、合格時はコミット trailerに `Loop-Verified: n/m` を自動記録します。監査証跡が残る作業です。先頭に `#123` / issue キーを付けると、その項目にも判定コメントを残します（write-back ソースが設定されている場合）。 |
 | **`/loopcraft:loop-init` スキル** | リポジトリをスキャンし、あなたにインタビューして `.loop/` を設定済みゲートとルーブリック初案でスキャフォールドします。1 つのコマンドでプロジェクトオンボーディング完了。 |
 | **`/loopcraft:loop-run` スキル** | バックログを無人で巡回 — 項目の選別、loop-task サイクルの実行、ゲート通過、コミットをすべて自動化します。すべてのコミットは worktree まで、main へのマージは常にあなたの判断です — システムは実行するだけで、絶対にリポジトリにはプッシュしません。 |
 
