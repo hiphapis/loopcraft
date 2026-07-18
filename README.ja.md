@@ -312,6 +312,7 @@ Obsidian を `.loop/memory/` に向ければ、生きた vault になります�
 - **Phase 1 — Memory** ✅: フック、蒸留プロトコル、vault。
 - **Phase 2 — Self-correction** ✅: 検証可能なルーブリック、maker の推論を見ずに成果物だけを採点する独立 verifier サブエージェント、`/loop-task` 自己修正サイクル、`/loop-init` オンボーディング・インタビュー。
 - **Phase 3 — 自律ランナー** ✅: `/loop-run` がバックログを無人で巡回 — 作業 → 検証 → ゲート → コミット → 蒸留。プラガブルなバックログソース（file/GitHub/Jira）と write-back（comment / draft-PR）に対応。コミットは worktree まで、main へのマージは常に人間が決定します。
+- **Phase 4 — 拡張性** ✅: プラガブルなテスト作成者（Codex CLI / マーケットプレイスプラグイン / subagent）、対象を指定した `/loop-run #123`、prompt 駆動の `loop-task` write-back。
 
 ## 要件
 

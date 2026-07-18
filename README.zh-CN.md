@@ -312,6 +312,7 @@ vault 没有数据库，也不依赖任何应用。每条笔记都是带 YAML fr
 - **Phase 1 — Memory** ✅：钩子、蒸馏协议、vault。
 - **Phase 2 — Self-correction** ✅：可验证的评分标准（rubric）、不看 maker 推理过程、只对产出打分的独立 verifier 子代理、`/loop-task` 自我纠正循环、`/loop-init` 引导式初始化。
 - **Phase 3 — 自主运行器** ✅：`/loop-run` 无人值守地遍历 backlog — 工作 → 验证 → 门禁 → 提交 → 蒸馏。支持可插拔的 backlog 来源（file/GitHub/Jira）与 write-back（comment / draft-PR）。提交只到 worktree 为止，合并到 main 永远由人决定。
+- **Phase 4 — 可扩展性** ✅：可插拔的测试作者（Codex CLI / marketplace 插件 / subagent）、有针对性的 `/loop-run #123`、prompt 驱动的 `loop-task` write-back。
 
 ## 环境要求
 

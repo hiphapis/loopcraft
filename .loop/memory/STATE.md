@@ -3,7 +3,8 @@
 > updated: 2026-07-18
 
 ## Working on
-- **Phase 3 (autonomous runner) — COMPLETE ✅** (v0.4.3). Sources: file / GitHub / Jira; write-back: none / comment / draft-pr. All dogfooded on loopcraft's own GitHub issues.
+- **Phase 3 — COMPLETE ✅** (v0.4.3). Sources: file / GitHub / Jira; write-back: none / comment / draft-pr.
+- **Phase 4 — COMPLETE ✅** (v0.4.6). #7 pluggable test author, #8 loop-run target selector, #9 loop-task write-back. All dogfooded on loopcraft's own GitHub issues (#1–#9 closed).
 
 ## Done (recent)
 - v0.4.0: pluggable backlog source + write-back — GitHub reference adapter (`adapters/github.sh`), loop-run source-reading + write-back (none/comment/draft-pr), loop-init interview (Q1 source / Q2 write-back + gating), "Autonomous runner" README section + `assets/loopcraft-autonomous-runner.svg`.
@@ -13,9 +14,10 @@
 - v0.4.3: bundled Jira adapter (`adapters/jira.sh`, #5) — curl + Jira REST v2 list/report; task-tracker-only, composes with a GitHub `config.pr`. **Phase 3 ✅.** Suite 42→51.
 - v0.4.4: pluggable test author (#7, Phase 4) — `config.tests.author` = codex-cli / codex-plugin / subagent (default+fallback), uniform behavior-spec-only contract. Instructions+config+README only (no new .sh).
 - v0.4.5: loop-run target selector (#8, Phase 4) — `/loop-run #123` runs one item; new `get` contract method (github.sh/jira.sh) + `ready` flag + interactive confirm when not loop:ready. Suite 51→59.
+- v0.4.6: loop-task prompt-driven write-back (#9, Phase 4) — leading `#id` comments the verdict on that item (best-effort, comment). loop-task SKILL + README only. **Phase 4 ✅.**
 
 ## Next steps
-- **Phase 4 in progress** (milestone). Done: #7 pluggable test author (v0.4.4), #8 loop-run target selector (v0.4.5). Remaining: **#9 loop-task prompt-driven write-back** (last Phase 4 item). Same dogfood flow (brainstorm → spec → loop:ready → loop-run).
+- **Phase 3 & 4 complete** (#1–#9 all closed). Optional: reinstall/update the installed plugin (repo ahead of installed) to dogfood the installed artifact; live Jira smoke once an instance is available; Phase 5 ideas TBD.
 - Optional: reinstall/update the installed plugin (repo ahead of installed) to dogfood the installed artifact; live Jira smoke once an instance is available.
 - Reinstall/update the installed plugin (repo is v0.4.1; the loaded plugin was stale v0.3.2) to dogfood the installed artifact, not just the repo.
 - After #4 + #5 → mark Phase 3 ✅ in the Roadmap.
