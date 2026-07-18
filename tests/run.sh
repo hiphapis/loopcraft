@@ -599,6 +599,35 @@ adapter_report_partial_gh_failure_surfaces() {
   assert_eq "yes" "$nz" "report surfaces a partial gh failure"
 }
 
+adapter_report_missing_item_id() {
+  local dir bindir cap status
+  dir="$(new_tmp_dir)"; cap="$dir/gh.log"
+  bindir="$(make_bin_stub "$dir" gh 'printf "%s\n" "$*" >> "'"$cap"'"')"
+  PATH="$bindir:$PATH" env -u LOOP_ITEM_ID LOOP_EVENT=verified bash "$ADAPTER_GH" report >/dev/null 2>&1
+  status=$?
+  assert_eq "2" "$status" "report exits 2 when LOOP_ITEM_ID is missing" &&
+    assert_eq "" "$(cat "$cap" 2>/dev/null)" "report makes no gh calls when LOOP_ITEM_ID is missing"
+}
+
+adapter_report_unknown_event() {
+  local dir bindir cap status
+  dir="$(new_tmp_dir)"; cap="$dir/gh.log"
+  bindir="$(make_bin_stub "$dir" gh 'printf "%s\n" "$*" >> "'"$cap"'"')"
+  PATH="$bindir:$PATH" LOOP_ITEM_ID=42 LOOP_EVENT=bogus bash "$ADAPTER_GH" report >/dev/null 2>&1
+  status=$?
+  assert_eq "2" "$status" "report exits 2 for unknown LOOP_EVENT"
+}
+
+adapter_report_started_is_noop() {
+  local dir bindir cap status
+  dir="$(new_tmp_dir)"; cap="$dir/gh.log"
+  bindir="$(make_bin_stub "$dir" gh 'printf "%s\n" "$*" >> "'"$cap"'"')"
+  PATH="$bindir:$PATH" LOOP_ITEM_ID=42 LOOP_EVENT=started bash "$ADAPTER_GH" report >/dev/null 2>&1
+  status=$?
+  assert_eq "0" "$status" "report exits 0 for started event" &&
+    assert_eq "" "$(cat "$cap" 2>/dev/null)" "started makes no gh calls"
+}
+
 backlog_list_command_from_config_yields_contract() {
   local dir bindir cfgcmd out id
   dir="$(new_tmp_dir)"; mkdir -p "$dir/.loop/adapters"
@@ -653,6 +682,9 @@ test_case "adapter/github: report comment-only" adapter_report_comment_only
 test_case "adapter/github: report draft-pr opens PR with Closes" adapter_report_draft_pr
 test_case "adapter/github: report escalated labels blocked" adapter_report_escalated
 test_case "adapter/github: report surfaces partial gh failure" adapter_report_partial_gh_failure_surfaces
+test_case "adapter/github: report missing LOOP_ITEM_ID exits 2" adapter_report_missing_item_id
+test_case "adapter/github: report unknown LOOP_EVENT exits 2" adapter_report_unknown_event
+test_case "adapter/github: report started is a no-op" adapter_report_started_is_noop
 test_case "backlog: config list command yields contract" backlog_list_command_from_config_yields_contract
 
 printf '\n%d passed, %d failed\n' "$PASS" "$FAIL"
