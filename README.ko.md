@@ -309,7 +309,7 @@ Obsidian을 `.loop/memory/`로 향하게 하면 살아 있는 vault가 됩니다
 
 - **Phase 1 — Memory** ✅: hooks, 증류 프로토콜, vault.
 - **Phase 2 — Self-correction** ✅: 검증 가능한 rubric, maker의 추론을 보지 않고 산출물만 채점하는 독립 verifier 서브에이전트, `/loop-task` 자기교정 사이클, `/loop-init` 온보딩 인터뷰.
-- **Phase 3 — 자율 러너** (현재 릴리스): `/loop-run`이 backlog를 무인 순회 — 작업 → 검증 → 게이트 → 커밋 → 증류. 플러그블 backlog 소스(file/GitHub/Jira)와 write-back(comment / draft-PR) 지원. 커밋은 워크트리까지만, main 병합은 항상 사람이 결정합니다.
+- **Phase 3 — 자율 러너** ✅: `/loop-run`이 backlog를 무인 순회 — 작업 → 검증 → 게이트 → 커밋 → 증류. 플러그블 backlog 소스(file/GitHub/Jira)와 write-back(comment / draft-PR) 지원. 커밋은 워크트리까지만, main 병합은 항상 사람이 결정합니다.
 
 ## 요구사항
 
