@@ -245,6 +245,8 @@ git log --oneline -- .loop/memory/   # 循环在何时学到了什么
 
 loopcraft 绝不会关闭 issue 或合并到默认分支 — 由人合并 draft PR，平台会自动关闭关联的 issue。仅在 `draft-pr` 模式（opt-in）下才会推送 feature 分支；其他所有模式都保持不推送。
 
+**测试编写。** 当某项任务需要测试时，`loop-run` 绝不让 maker 为自己的代码编写测试 — 如果配置了 **Codex**，就由 **Codex** 编写，否则由 **上下文隔离的子代理**（一个只拿到行为规格、从不看到 maker 推理过程的全新代理）编写。独立测试验证的是行为，而不是实现。
+
 ### GitHub 设置
 
 当你选择 **GitHub Issue** 时，`loop-init` 会替你写好这些内容，但它的样子是这样的 — `.loop/config.json` 中相关的部分：

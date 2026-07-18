@@ -59,9 +59,10 @@ Three unattended special rules:
 1. **You can't ask the user when escalating** → record the last Verdict summary in the run journal,
    preserve uncommitted changes with `git stash push -m "loop-run escalated: <item>"`,
    then add the item to STATE 'Open questions', delete the marker, and move to the next item.
-2. **Work that needs test files** → don't write them yourself (tests are Codex-owned);
-   do the implementation + record the test spec (what to verify), and mark
-   `Codex follow-up needed` in the run journal.
+2. **Work that needs test files** → don't let the maker write tests for its own code (they'd fit the
+   implementation, not verify behavior). Author tests independently: **Codex if it's configured**, otherwise
+   dispatch a **context-isolated subagent** (a fresh agent given only the behavior spec — never the maker's
+   reasoning) to write them. Record the test spec (what to verify) in the run journal either way.
 3. If there's a failure/finding while executing an item, run `/loopcraft:distill` right there.
 
 Update the item's row in the run journal whenever an item finishes (result: done/escalated, commit sha).
@@ -84,7 +85,7 @@ draft-pr details: branch each item off `config.backlog.base` (or the remote defa
 
 ## 3. Run end
 
-1. Update STATE.md: processed/skip/escalated items, commit list, Codex follow-up list, next-run suggestion.
+1. Update STATE.md: processed/skip/escalated items, commit list, test-authoring follow-ups (Codex or subagent), next-run suggestion.
 2. Add a totals line at the end of the run journal: `done n · skip n · escalated n · commits n`.
 3. Include in the final report: a per-item result table, the commit hashes, an explicit **"landing on main is the user's decision"**,
    and a proposal to update the backlog doc (striking through done items is a human doc, so only propose it).

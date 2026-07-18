@@ -245,6 +245,8 @@ It reads its work queue from a pluggable **backlog source**, chosen during `loop
 
 loopcraft never closes issues or merges to the default branch — a human merges the draft PR and the platform auto-closes the linked issue. Feature-branch push happens only in `draft-pr` mode (opt-in); every other mode stays push-free.
 
+**Test authoring.** When an item needs tests, `loop-run` never lets the maker write them for its own code — **Codex** authors them if it's configured, otherwise a **context-isolated subagent** does (a fresh agent given only the behavior spec, never the maker's reasoning). Independent tests verify behavior, not the implementation.
+
 ### GitHub setup
 
 `loop-init` writes this for you when you pick **GitHub Issue**, but here's the shape — the relevant part of `.loop/config.json`:
