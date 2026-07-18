@@ -11,9 +11,11 @@
 - v0.4.1: cmd_report exit-code aggregation (#1), report error-path tests (#2), loop-init localization broadened (#3), test-authoring fallback Codex→context-isolated subagent (#6). Suite 35→39.
 - v0.4.2: write-back seam (#4) — PR creation split out of `report` into a `pr` subcommand + `config.pr` (loop-run orchestrates push → config.pr → report). Suite 39→42.
 - v0.4.3: bundled Jira adapter (`adapters/jira.sh`, #5) — curl + Jira REST v2 list/report; task-tracker-only, composes with a GitHub `config.pr`. **Phase 3 ✅.** Suite 42→51.
+- v0.4.4: pluggable test author (#7, Phase 4) — `config.tests.author` = codex-cli / codex-plugin / subagent (default+fallback), uniform behavior-spec-only contract. Instructions+config+README only (no new .sh).
 
 ## Next steps
-- **Phase 3 ✅ complete** (all issues #1–#6 closed). Optional follow-ups: reinstall/update the installed plugin (repo v0.4.3 vs the stale installed version) to dogfood the installed artifact; live Jira smoke once an instance is available; consider Phase 4 (prompt-driven write-back in loop-task, GitHub Projects/Milestone selection).
+- **Phase 4 in progress** (milestone). Done: #7 pluggable test author (v0.4.4). Remaining: #8 loop-run target selector (`/loop-run #123`), #9 loop-task prompt-driven write-back. Same dogfood flow (brainstorm → spec → loop:ready → loop-run).
+- Optional: reinstall/update the installed plugin (repo ahead of installed) to dogfood the installed artifact; live Jira smoke once an instance is available.
 - Reinstall/update the installed plugin (repo is v0.4.1; the loaded plugin was stale v0.3.2) to dogfood the installed artifact, not just the repo.
 - After #4 + #5 → mark Phase 3 ✅ in the Roadmap.
 
