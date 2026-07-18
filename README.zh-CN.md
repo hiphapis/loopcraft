@@ -245,7 +245,7 @@ git log --oneline -- .loop/memory/   # 循环在何时学到了什么
 
 loopcraft 绝不会关闭 issue 或合并到默认分支 — 由人合并 draft PR，平台会自动关闭关联的 issue。仅在 `draft-pr` 模式（opt-in）下才会推送 feature 分支；其他所有模式都保持不推送。
 
-**测试编写。** 当某项任务需要测试时，`loop-run` 绝不让 maker 为自己的代码编写测试 — 如果配置了 **Codex**，就由 **Codex** 编写，否则由 **上下文隔离的子代理**（一个只拿到行为规格、从不看到 maker 推理过程的全新代理）编写。独立测试验证的是行为，而不是实现。
+**测试编写。** 当某项任务需要测试时，`loop-run` 绝不让 maker 为自己的代码编写测试。测试默认由已安装并配置好的 **[Codex](https://github.com/openai/codex)**（OpenAI 的 Codex CLI）编写 — 如果 Codex 不可用，loopcraft 会回退到 **上下文隔离的子代理**（一个只拿到行为规格、从不看到 maker 推理过程的全新 Claude 代理）。无论哪种方式，测试都是独立编写的，验证的是行为而不是实现。要启用 Codex，请安装并登录 [Codex CLI](https://github.com/openai/codex)。
 
 ### GitHub 设置
 

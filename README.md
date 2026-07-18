@@ -245,7 +245,7 @@ It reads its work queue from a pluggable **backlog source**, chosen during `loop
 
 loopcraft never closes issues or merges to the default branch — a human merges the draft PR and the platform auto-closes the linked issue. Feature-branch push happens only in `draft-pr` mode (opt-in); every other mode stays push-free.
 
-**Test authoring.** When an item needs tests, `loop-run` never lets the maker write them for its own code — **Codex** authors them if it's configured, otherwise a **context-isolated subagent** does (a fresh agent given only the behavior spec, never the maker's reasoning). Independent tests verify behavior, not the implementation.
+**Test authoring.** When an item needs tests, `loop-run` never lets the maker write them for its own code. Tests default to **[Codex](https://github.com/openai/codex)** (the OpenAI Codex CLI) when it's installed and configured; if Codex isn't available, loopcraft falls back to a **context-isolated subagent** (a fresh Claude agent given only the behavior spec, never the maker's reasoning). Either way the tests are authored independently — they verify behavior, not the implementation. To enable Codex, install and sign in to the [Codex CLI](https://github.com/openai/codex).
 
 ### GitHub setup
 
