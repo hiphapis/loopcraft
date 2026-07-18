@@ -60,9 +60,13 @@ Three unattended special rules:
    preserve uncommitted changes with `git stash push -m "loop-run escalated: <item>"`,
    then add the item to STATE 'Open questions', delete the marker, and move to the next item.
 2. **Work that needs test files** → don't let the maker write tests for its own code (they'd fit the
-   implementation, not verify behavior). Author tests independently: **Codex if it's configured**, otherwise
-   dispatch a **context-isolated subagent** (a fresh agent given only the behavior spec — never the maker's
-   reasoning) to write them. Record the test spec (what to verify) in the run journal either way.
+   implementation, not verify behavior). Author them independently via `config.tests.author` (default `subagent`):
+   - `codex-cli` → shell out: `${config.tests.codexCmd:-codex exec} "<prompt>"` (headless-capable).
+   - `codex-plugin` → delegate to the `codex @ openai-codex` marketplace plugin's runtime skill/agent (needs a Claude Code session with the plugin installed).
+   - `subagent` → dispatch a context-isolated subagent.
+   Whichever author, hand it **only the behavior spec + test-harness conventions — never the maker's reasoning**.
+   If the chosen author is unavailable (CLI not installed / plugin not in session) or fails, fall back to
+   `subagent` and note it in the run journal. Record the test spec (what to verify) either way.
 3. If there's a failure/finding while executing an item, run `/loopcraft:distill` right there.
 
 Update the item's row in the run journal whenever an item finishes (result: done/escalated, commit sha).

@@ -245,7 +245,7 @@ git log --oneline -- .loop/memory/   # ループがいつ何を学んだか
 
 loopcraft は issue をクローズしたり、デフォルトブランチへマージしたりすることは決してありません — 人間が draft PR をマージすると、プラットフォームがリンクされた issue を自動的にクローズします。feature ブランチへの push は `draft-pr` モード（オプトイン）でのみ発生し、それ以外のモードは push なしのままです。
 
-**テスト作成。** アイテムにテストが必要な場合、`loop-run` は決してメーカーに自分のコードのテストを書かせません。テストはデフォルトで、インストールされ設定されていれば **[Codex](https://github.com/openai/codex)**（OpenAI の Codex CLI）が作成します — Codex が利用できない場合は、loopcraft が **コンテキストが分離されたサブエージェント**（振る舞いの仕様だけを渡され、メーカーの推論は一切見ない新しい Claude エージェント）にフォールバックします。いずれの場合も、テストは独立して作成され、実装ではなく振る舞いを検証します。Codex を有効にするには、[Codex CLI](https://github.com/openai/codex) をインストールしてサインインしてください。
+**テスト作成。** アイテムにテストが必要な場合、`loop-run` は決してメーカーに自分のコードのテストを書かせません — 作成者は `config.tests.author` で選択します：**codex-cli**（[OpenAI Codex CLI](https://github.com/openai/codex)、`codex exec`）、**codex-plugin**（マーケットプレイスプラグイン `codex @ openai-codex`、Claude Code セッションが必要）、または **subagent**（コンテキストが分離された Claude エージェント — デフォルトであり、選択された作成者が利用できない場合や失敗した場合のフォールバック）。いずれが書く場合も、振る舞いの仕様だけを渡され、メーカーの推論は一切見ないため、テストは実装ではなく振る舞いを検証します。
 
 ### GitHub セットアップ
 

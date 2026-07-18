@@ -50,9 +50,16 @@ help rewrite it into a verifiable form.
 - Q1 = external system + remote present → offer all (none/comment/draft-pr). If draft-pr is chosen, also confirm/write `base` (PR target branch, default = remote default branch) and write `pr` (the code-host PR command — e.g. `bash .loop/adapters/github.sh pr` for GitHub; kept separate from the task-tracker `report` so a Jira `report` and a GitHub `pr` can compose).
 - Q1 = external system + no remote → **hide draft-pr** + note "no remote, so a Draft PR isn't possible — add one and re-run to enable it".
 
+**Q3. "Who authors tests when an item needs them?"** (intent) — stored as `tests.author` (default `subagent`):
+- **subagent** — a context-isolated Claude subagent (no setup). Default.
+- **codex-cli** — the OpenAI Codex CLI (`codex exec`); needs `codex` installed + signed in ([Codex CLI](https://github.com/openai/codex)).
+- **codex-plugin** — the marketplace plugin `codex @ openai-codex` (`/plugin install codex@openai-codex`); needs a Claude Code session.
+
+Detect: if `codex` is on PATH, suggest **codex-cli**; otherwise default **subagent**. Whichever is chosen, loop-run falls back to `subagent` if it's unavailable or fails.
+
 ## 3. Scaffold
 
-- `.loop/config.json` — from the interview results. `rubrics` is `[{"glob": "...", "rubric": "code"}, ...]`. Write `backlog` as either file-form (`{file, section}`) or command-form (`{source, list, report[, writeback, base]}`) depending on the source (omitting them means source=file, writeback=none).
+- `.loop/config.json` — from the interview results. `rubrics` is `[{"glob": "...", "rubric": "code"}, ...]`. Write `backlog` as either file-form (`{file, section}`) or command-form (`{source, list, report[, writeback, base]}`) depending on the source (omitting them means source=file, writeback=none). Write `tests: {author}` from Q3 (`codex-cli`/`codex-plugin`/`subagent`; omit → `subagent`).
 - `.loop/memory/INDEX.md`·`STATE.md`·`LEDGER.md` — from the templates below verbatim (only the date set to today):
 
 INDEX.md: `# Memory Index\n\n> notes 0 · verified 0% · updated: <today>\n\n## debugging\n\n## pattern\n\n## environment\n\n## decision`
