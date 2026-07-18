@@ -76,7 +76,7 @@ The rest of the vocabulary this README uses:
 | **`verifier` subagent** | An independent grader that scores your work against a rubric — seeing only the output and criteria, not your reasoning. Prevents maker bias from clouding judgment. |
 | **`/loopcraft:loop-task` skill** | Maker → verifier → retry → gate → commit cycle: submit a task description, get a verdict summary, then automatically stamp `Loop-Verified: n/m` in the commit trailer for audited work. Pass a leading `#123` / issue key and it also comments the verdict on that item (when a write-back source is configured). |
 | **`/loopcraft:loop-init` skill** | Scans your repo and interviews you to scaffold `.loop/` with configured gates and a rubric starter. One-command project onboarding. |
-| **`/loopcraft:loop-run` skill** | Autonomously traverses your backlog unattended — selects items, runs loop-task cycles, gates them, and commits all work to a worktree. All commits stay in the worktree; merging to main always remains your call — the system only executes, it never pushes to the repo. |
+| **`/loopcraft:loop-run` skill** | Autonomously traverses your backlog unattended — selects items, runs loop-task cycles, gates them, and commits. Commits stay on a branch by default; only in `draft-pr` mode does it push a review-only feature branch and open a draft PR (opt-in). Merging to the default branch always remains your call. |
 
 Zero runtime dependencies: `bash + git + grep/sed/awk`. Escape hatch: set `LOOP_DISABLE=1` to disable all hooks.
 
@@ -257,6 +257,7 @@ loopcraft never closes issues or merges to the default branch — a human merges
 "backlog": {
   "source": "github",
   "list": "bash .loop/adapters/github.sh list --label loop:ready",
+  "get": "bash .loop/adapters/github.sh get",
   "report": "bash .loop/adapters/github.sh report",
   "writeback": "draft-pr",
   "base": "main"
@@ -284,6 +285,31 @@ gh label create loop:blocked --description "loopcraft: escalated"
    ```
    For each ready issue, `loop-run` reads it as a backlog item, runs the full `loop-task` cycle (rubric → verifier → gate → `Loop-Verified` commit) on a per-item `loop/<id>` branch, then writes back a verdict comment plus a **draft PR** whose body says `Closes #<id>`.
 4. **You stay in control.** Review each draft PR; merging it lets GitHub auto-close the linked issue. loopcraft never merges to the default branch and never closes issues itself — an item it can't finish gets `loop:blocked` and is skipped next run.
+
+### Jira setup
+
+For a Jira source, `.loop/config.json` looks like this — Jira tracks the tasks, and a git host opens the PR via `config.pr`:
+
+```json
+"backlog": {
+  "source": "jira",
+  "list": "bash .loop/adapters/jira.sh list --jql 'labels = loop-ready AND statusCategory != Done'",
+  "get": "bash .loop/adapters/jira.sh get",
+  "report": "bash .loop/adapters/jira.sh report",
+  "writeback": "comment"
+},
+"pr": "bash .loop/adapters/github.sh pr"
+```
+
+Auth comes from the environment (a Jira API token):
+
+```bash
+export JIRA_BASE_URL="https://your-domain.atlassian.net"
+export JIRA_EMAIL="you@example.com"
+export JIRA_TOKEN="<atlassian-api-token>"
+```
+
+Add the `loop-ready` / `loop-manual` / `loop-blocked` labels to your Jira issues (Jira labels use hyphens, not colons). `jira.sh` is task-tracker only — it comments and adds labels; PRs come from the code-host `config.pr`.
 
 ## Vault format
 

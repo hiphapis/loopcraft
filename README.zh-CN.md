@@ -76,7 +76,7 @@ Loopcraft 就是把这样一个系统做成了可安装的插件。在以下情�
 | **`verifier` 子代理** | 根据你的评分标准（rubric）独立对产出打分的评估者。只看产出和标准，不看 maker 的推理过程。完全阻断 maker 的主观偏差。 |
 | **`/loopcraft:loop-task` 技能** | Maker → verifier → 重试 → 门禁 → 提交的循环：提交任务说明，收到 verifier 的判定摘要，合格时自动在提交 trailer 中记录 `Loop-Verified: n/m`。留下审计证迹。在开头加上 `#123` / issue key，还会在该项目上评论判定结果（当配置了 write-back 来源时）。 |
 | **`/loopcraft:loop-init` 技能** | 扫描仓库并与你面谈，用已配置的门禁和 rubric 初案自动搭建 `.loop/`。一条命令完成项目引导。 |
-| **`/loopcraft:loop-run` 技能** | 无人值守地遍历 backlog — 自动选别项目、执行 loop-task 循环、通过门禁、提交更改，全部自动化。所有提交只到 worktree 为止，合并到 main 永远由你决定 — 系统只是执行，绝不会推送到仓库。 |
+| **`/loopcraft:loop-run` 技能** | 无人值守地遍历 backlog — 自动选别项目、执行 loop-task 循环、通过门禁、提交更改，全部自动化。提交默认只到分支；仅在 `draft-pr` 模式下才会推送评审用的 feature 分支并开启 draft PR（opt-in）。合并到默认分支永远由你决定。 |
 
 零运行时依赖：`bash + git + grep/sed/awk`。逃生口：设置 `LOOP_DISABLE=1` 可禁用所有钩子。
 
@@ -257,6 +257,7 @@ loopcraft 绝不会关闭 issue 或合并到默认分支 — 由人合并 draft 
 "backlog": {
   "source": "github",
   "list": "bash .loop/adapters/github.sh list --label loop:ready",
+  "get": "bash .loop/adapters/github.sh get",
   "report": "bash .loop/adapters/github.sh report",
   "writeback": "draft-pr",
   "base": "main"
@@ -284,6 +285,31 @@ gh label create loop:blocked --description "loopcraft: escalated"
    ```
    对每个 ready 的 issue，`loop-run` 会把它当作一个 backlog 项目读取，在按项目划分的 `loop/<id>` 分支上运行完整的 `loop-task` 循环（rubric → verifier → gate → `Loop-Verified` 提交），然后写回一条判定评论，并附带一个正文写着 `Closes #<id>` 的 **draft PR**。
 4. **主动权始终在你手上。** 审阅每一个 draft PR；合并后 GitHub 会自动关闭关联的 issue。loopcraft 绝不会合并到默认分支，也绝不会自己关闭 issue — 无法完成的项目会被打上 `loop:blocked`，下一次运行时跳过。
+
+### Jira 设置
+
+对于 Jira 来源，`.loop/config.json` 是这样的 — Jira 负责跟踪任务，PR 则由代码托管方通过 `config.pr` 打开：
+
+```json
+"backlog": {
+  "source": "jira",
+  "list": "bash .loop/adapters/jira.sh list --jql 'labels = loop-ready AND statusCategory != Done'",
+  "get": "bash .loop/adapters/jira.sh get",
+  "report": "bash .loop/adapters/jira.sh report",
+  "writeback": "comment"
+},
+"pr": "bash .loop/adapters/github.sh pr"
+```
+
+认证来自环境变量（一个 Jira API token）：
+
+```bash
+export JIRA_BASE_URL="https://your-domain.atlassian.net"
+export JIRA_EMAIL="you@example.com"
+export JIRA_TOKEN="<atlassian-api-token>"
+```
+
+给你的 Jira issue 添加 `loop-ready` / `loop-manual` / `loop-blocked` 标签（Jira 标签使用连字符，而不是冒号）。`jira.sh` 仅限任务跟踪 — 它负责评论和打标签；PR 则来自代码托管方的 `config.pr`。
 
 ## Vault 结构
 

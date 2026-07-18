@@ -76,7 +76,7 @@ Loopcraft는 바로 그 시스템을 설치 가능한 플러그인으로 만든 
 | **`verifier` 서브에이전트** | 당신의 rubric에 따라 산출물을 독립적으로 채점하는 심사자입니다. maker의 추론은 보지 않고 결과물과 기준만 봅니다. maker 바이어스를 원천 차단합니다. |
 | **`/loopcraft:loop-task` 스킬** | Maker → verifier → 재시도 → 게이트 → 커밋 순환: 작업 설명을 제출하면 판정 요약을 받고, 통과 시 커밋 트레일러에 `Loop-Verified: n/m`을 자동 기록합니다. 감사 추적이 남는 작업입니다. 앞에 `#123` / 이슈 키를 붙이면 해당 항목에도 판정 댓글을 남깁니다(write-back 소스가 설정된 경우). |
 | **`/loopcraft:loop-init` 스킬** | 리포를 스캔하고 당신과 인터뷰해서 `.loop/`를 설정된 게이트와 rubric 초안으로 스캐폴딩합니다. 한 명령으로 프로젝트 온보딩 완료. |
-| **`/loopcraft:loop-run` 스킬** | backlog를 무인으로 순회 — 항목 선별, loop-task 사이클 실행, 게이트 통과, 커밋을 모두 자동화합니다. 모든 커밋은 워크트리까지만, main 병합은 항상 당신의 결정입니다 — 시스템은 실행만 하고 절대 리포에 푸시하지 않습니다. |
+| **`/loopcraft:loop-run` 스킬** | backlog를 무인으로 순회 — 항목 선별, loop-task 사이클 실행, 게이트 통과, 커밋을 모두 자동화합니다. 커밋은 기본적으로 브랜치까지만; `draft-pr` 모드에서만 리뷰용 피처 브랜치를 push하고 draft PR을 엽니다(opt-in). 기본 브랜치 병합은 항상 당신의 결정입니다. |
 
 런타임 의존성 제로: `bash + git + grep/sed/awk`. 탈출구: `LOOP_DISABLE=1`로 모든 hook 무력화.
 
@@ -257,6 +257,7 @@ loopcraft는 이슈를 닫거나 기본 브랜치에 병합하지 않습니다 �
 "backlog": {
   "source": "github",
   "list": "bash .loop/adapters/github.sh list --label loop:ready",
+  "get": "bash .loop/adapters/github.sh get",
   "report": "bash .loop/adapters/github.sh report",
   "writeback": "draft-pr",
   "base": "main"
@@ -284,6 +285,31 @@ gh label create loop:blocked --description "loopcraft: escalated"
    ```
    준비된 이슈마다 `loop-run`은 이를 backlog 항목으로 읽어, 항목별 `loop/<id>` 브랜치에서 전체 `loop-task` 사이클(rubric → verifier → gate → `Loop-Verified` 커밋)을 실행한 다음, 판정 댓글과 `Closes #<id>`라고 적힌 본문을 가진 **draft PR**을 작성합니다.
 4. **당신이 통제권을 가집니다.** 각 draft PR을 검토하세요; 병합하면 GitHub가 연결된 이슈를 자동으로 닫습니다. loopcraft는 절대 기본 브랜치에 병합하거나 이슈를 직접 닫지 않습니다 — 끝내지 못한 항목은 `loop:blocked`가 붙어 다음 실행에서 건너뜁니다.
+
+### Jira 설정
+
+Jira 소스를 사용하면 `.loop/config.json`은 다음과 같은 모습입니다 — Jira가 작업을 추적하고, git 호스트가 `config.pr`을 통해 PR을 엽니다:
+
+```json
+"backlog": {
+  "source": "jira",
+  "list": "bash .loop/adapters/jira.sh list --jql 'labels = loop-ready AND statusCategory != Done'",
+  "get": "bash .loop/adapters/jira.sh get",
+  "report": "bash .loop/adapters/jira.sh report",
+  "writeback": "comment"
+},
+"pr": "bash .loop/adapters/github.sh pr"
+```
+
+인증은 환경변수에서 가져옵니다(Jira API 토큰):
+
+```bash
+export JIRA_BASE_URL="https://your-domain.atlassian.net"
+export JIRA_EMAIL="you@example.com"
+export JIRA_TOKEN="<atlassian-api-token>"
+```
+
+Jira 이슈에 `loop-ready` / `loop-manual` / `loop-blocked` 라벨을 추가하세요(Jira 라벨은 콜론이 아니라 하이픈을 사용합니다). `jira.sh`는 태스크 트래커 전용입니다 — 댓글을 남기고 라벨을 추가하며, PR은 코드 호스트의 `config.pr`에서 나옵니다.
 
 ## Vault 포맷
 

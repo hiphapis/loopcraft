@@ -76,7 +76,7 @@ Loopcraft はまさにそのシステムを、インストール可能なプラ�
 | **`verifier` サブエージェント** | あなたのルーブリックに基づいて、成果物を独立して採点する評価者です。maker の推論は見ず、産出物と基準だけを見ます。maker のバイアスを完全に遮断します。 |
 | **`/loopcraft:loop-task` スキル** | Maker → verifier → 再試行 → ゲート → コミットの循環：タスクの説明を提出すると、verifier の判定サマリを受け取り、合格時はコミット trailerに `Loop-Verified: n/m` を自動記録します。監査証跡が残る作業です。先頭に `#123` / issue キーを付けると、その項目にも判定コメントを残します（write-back ソースが設定されている場合）。 |
 | **`/loopcraft:loop-init` スキル** | リポジトリをスキャンし、あなたにインタビューして `.loop/` を設定済みゲートとルーブリック初案でスキャフォールドします。1 つのコマンドでプロジェクトオンボーディング完了。 |
-| **`/loopcraft:loop-run` スキル** | バックログを無人で巡回 — 項目の選別、loop-task サイクルの実行、ゲート通過、コミットをすべて自動化します。すべてのコミットは worktree まで、main へのマージは常にあなたの判断です — システムは実行するだけで、絶対にリポジトリにはプッシュしません。 |
+| **`/loopcraft:loop-run` スキル** | バックログを無人で巡回 — 項目の選別、loop-task サイクルの実行、ゲート通過、コミットをすべて自動化します。コミットは既定ではブランチまで。`draft-pr` モードでのみレビュー用のフィーチャーブランチを push し draft PR を開きます（opt-in）。デフォルトブランチへのマージは常にあなたの判断です。 |
 
 ランタイム依存ゼロ: `bash + git + grep/sed/awk`。エスケープハッチ: `LOOP_DISABLE=1` で全フックを無効化。
 
@@ -257,6 +257,7 @@ loopcraft は issue をクローズしたり、デフォルトブランチへマ
 "backlog": {
   "source": "github",
   "list": "bash .loop/adapters/github.sh list --label loop:ready",
+  "get": "bash .loop/adapters/github.sh get",
   "report": "bash .loop/adapters/github.sh report",
   "writeback": "draft-pr",
   "base": "main"
@@ -284,6 +285,31 @@ gh label create loop:blocked --description "loopcraft: escalated"
    ```
    準備ができた issue ごとに、`loop-run` はそれをバックログ項目として読み込み、項目単位の `loop/<id>` ブランチ上で `loop-task` サイクル一式（rubric → verifier → gate → `Loop-Verified` コミット）を実行し、その後に判定コメントと、本文に `Closes #<id>` と書かれた **draft PR** を書き戻します。
 4. **あなたが主導権を握ります。** 各 draft PR をレビューしてください。マージすれば GitHub がリンクされた issue を自動的にクローズします。loopcraft はデフォルトブランチへマージすることも issue を自ら閉じることも決してありません — 完了できなかった項目には `loop:blocked` が付き、次回の実行ではスキップされます。
+
+### Jira セットアップ
+
+Jira ソースの場合、`.loop/config.json` はこのようになります — Jira がタスクを追跡し、git ホストが `config.pr` を介して PR を開きます：
+
+```json
+"backlog": {
+  "source": "jira",
+  "list": "bash .loop/adapters/jira.sh list --jql 'labels = loop-ready AND statusCategory != Done'",
+  "get": "bash .loop/adapters/jira.sh get",
+  "report": "bash .loop/adapters/jira.sh report",
+  "writeback": "comment"
+},
+"pr": "bash .loop/adapters/github.sh pr"
+```
+
+認証は環境変数から取得します（Jira API トークン）：
+
+```bash
+export JIRA_BASE_URL="https://your-domain.atlassian.net"
+export JIRA_EMAIL="you@example.com"
+export JIRA_TOKEN="<atlassian-api-token>"
+```
+
+Jira の issue に `loop-ready` / `loop-manual` / `loop-blocked` ラベルを追加してください（Jira のラベルはコロンではなくハイフンを使います）。`jira.sh` はタスクトラッカー専用です — コメントとラベル付けを行い、PR はコードホストの `config.pr` から発行されます。
 
 ## Vault フォーマット
 
