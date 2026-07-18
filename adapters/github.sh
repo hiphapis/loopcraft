@@ -8,18 +8,15 @@ SKIP_LABEL="loop:manual"   # items carrying this label are marked unfit-for-unat
 BLOCKED_LABEL="loop:blocked"
 
 cmd_report() {
-  local id="${LOOP_ITEM_ID:-}" event="${LOOP_EVENT:-}" wb="${LOOP_WRITEBACK:-none}" rc=0
+  local id="${LOOP_ITEM_ID:-}" event="${LOOP_EVENT:-}" rc=0
   [ -n "$id" ] || { printf 'report: LOOP_ITEM_ID required\n' >&2; return 2; }
+  # report is the task-tracker write-back only (comment / label). PR creation is a
+  # separate concern — see cmd_pr, orchestrated by loop-run in draft-pr mode.
   # write-back is best-effort, but a partial failure must surface: OR every gh
   # call's exit status so report returns non-zero if ANY call failed.
   case "$event" in
     verified)
-      gh issue comment "$id" --body "loopcraft: verified ${LOOP_VERDICT:-} · commit ${LOOP_COMMIT:-} · branch ${LOOP_BRANCH:-}" || rc=$?
-      if [ "$wb" = "draft-pr" ]; then
-        gh pr create --draft --head "${LOOP_BRANCH:-}" --base "${LOOP_BASE:-}" \
-          --title "loopcraft: #$id" \
-          --body "Closes #$id"$'\n\n'"loopcraft verified ${LOOP_VERDICT:-}." || rc=$?
-      fi
+      gh issue comment "$id" --body "loopcraft: verified ${LOOP_VERDICT:-} · commit ${LOOP_COMMIT:-} · branch ${LOOP_BRANCH:-}${LOOP_PR_URL:+ · PR ${LOOP_PR_URL}}" || rc=$?
       ;;
     escalated)
       gh issue comment "$id" --body "loopcraft: escalated — ${LOOP_NOTE:-}" || rc=$?
@@ -29,6 +26,16 @@ cmd_report() {
     *) printf 'report: unknown LOOP_EVENT [%s]\n' "$event" >&2; return 2 ;;
   esac
   return "$rc"
+}
+
+# Code-host concern (separate from report): open a draft PR for the pushed branch.
+# Called by loop-run in draft-pr mode. Prints the PR URL to stdout (gh does).
+cmd_pr() {
+  local id="${LOOP_ITEM_ID:-}"
+  [ -n "$id" ] || { printf 'pr: LOOP_ITEM_ID required\n' >&2; return 2; }
+  gh pr create --draft --head "${LOOP_BRANCH:-}" --base "${LOOP_BASE:-}" \
+    --title "loopcraft: #$id" \
+    --body "Closes #$id"$'\n\n'"loopcraft verified ${LOOP_VERDICT:-}."
 }
 
 cmd_list() {
@@ -59,7 +66,8 @@ main() {
   case "$sub" in
     list) cmd_list "$@" ;;
     report) cmd_report "$@" ;;
-    *) printf 'usage: github.sh {list|report}\n' >&2; exit 2 ;;
+    pr) cmd_pr "$@" ;;
+    *) printf 'usage: github.sh {list|report|pr}\n' >&2; exit 2 ;;
   esac
 }
 

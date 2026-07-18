@@ -233,7 +233,7 @@ It reads its work queue from a pluggable **backlog source**, chosen during `loop
 - **file** (default) — a document section you designate, e.g. `docs/project-status.md` § "Ready to Execute".
 - **github** / **jira** / **command** — loopcraft runs the `list`/`report` commands you configure. The core never calls vendor tools directly; a bundled GitHub adapter (`.loop/adapters/github.sh`) is the reference implementation, and other providers copy it as a template.
 
-`list` emits a normalized JSON array (`id`, `title`, `body`, `ref`, `skip`); `report` receives the outcome via `LOOP_*` env vars. For the GitHub adapter, `skip` is set by a `loop:manual` (manual-only, skip) or `loop:blocked` (previously escalated) label on the issue.
+`list` emits a normalized JSON array (`id`, `title`, `body`, `ref`, `skip`); `report` receives the outcome via `LOOP_*` env vars. For the GitHub adapter, `skip` is set by a `loop:manual` (manual-only, skip) or `loop:blocked` (previously escalated) label on the issue. In `draft-pr` mode a separate `config.pr` command (a **code-host** concern) opens the PR, so `report` stays task-tracker-only — that lets a Jira `report` and a GitHub `pr` compose.
 
 **Write-back** (`backlog.writeback`, default `none`):
 
@@ -241,7 +241,7 @@ It reads its work queue from a pluggable **backlog source**, chosen during `loop
 |------|----------|--------|---------------|
 | `none` | one per run | no | nothing |
 | `comment` | one per run | no | comments the verdict on the item |
-| `draft-pr` | one per item (`loop/<id>`) | feature branch only | pushes and opens a **draft PR** with `Closes #<id>` |
+| `draft-pr` | one per item (`loop/<id>`) | feature branch only | pushes, then `config.pr` opens a **draft PR** with `Closes #<id>` |
 
 loopcraft never closes issues or merges to the default branch — a human merges the draft PR and the platform auto-closes the linked issue. Feature-branch push happens only in `draft-pr` mode (opt-in); every other mode stays push-free.
 
@@ -258,7 +258,8 @@ loopcraft never closes issues or merges to the default branch — a human merges
   "report": "bash .loop/adapters/github.sh report",
   "writeback": "draft-pr",
   "base": "main"
-}
+},
+"pr": "bash .loop/adapters/github.sh pr"
 ```
 
 One-time labels (loop-init offers to create them):

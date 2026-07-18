@@ -47,7 +47,7 @@ help rewrite it into a verifiable form.
 
 **Q2 gating:**
 - Q1 = file → **skip Q2**, don't write `writeback` (= none).
-- Q1 = external system + remote present → offer all (none/comment/draft-pr). If draft-pr is chosen, also confirm/write `base` (the PR target branch, default = remote default branch).
+- Q1 = external system + remote present → offer all (none/comment/draft-pr). If draft-pr is chosen, also confirm/write `base` (PR target branch, default = remote default branch) and write `pr` (the code-host PR command — e.g. `bash .loop/adapters/github.sh pr` for GitHub; kept separate from the task-tracker `report` so a Jira `report` and a GitHub `pr` can compose).
 - Q1 = external system + no remote → **hide draft-pr** + note "no remote, so a Draft PR isn't possible — add one and re-run to enable it".
 
 ## 3. Scaffold

@@ -233,7 +233,7 @@ git log --oneline -- .loop/memory/   # ループがいつ何を学んだか
 - **file**（デフォルト）— `docs/project-status.md` の "Ready to Execute" セクションのように指定したドキュメントセクション。
 - **github** / **jira** / **command** — loopcraft が設定された `list`/`report` コマンドを実行します。コアは vendor ツールを直接呼び出しません — バンドルされた GitHub アダプター（`.loop/adapters/github.sh`）がリファレンス実装であり、他の provider はこれをテンプレートとしてコピーします。
 
-`list` は正規化された JSON 配列（`id`, `title`, `body`, `ref`, `skip`）を出力し、`report` は `LOOP_*` 環境変数で結果を受け取ります。GitHub アダプターでは、issue に付いた `loop:manual`（手動対応専用、skip）または `loop:blocked`（過去に escalate 済み）ラベルによって `skip` が設定されます。
+`list` は正規化された JSON 配列（`id`, `title`, `body`, `ref`, `skip`）を出力し、`report` は `LOOP_*` 環境変数で結果を受け取ります。GitHub アダプターでは、issue に付いた `loop:manual`（手動対応専用、skip）または `loop:blocked`（過去に escalate 済み）ラベルによって `skip` が設定されます。`draft-pr` モードでは、別の `config.pr` コマンド（**コードホスト**の関心事）が PR を開くため、`report` はタスクトラッカー専用のままです — これにより Jira の `report` と GitHub の `pr` を組み合わせられます。
 
 **Write-back**（`backlog.writeback`、デフォルト `none`）：
 
@@ -241,7 +241,7 @@ git log --oneline -- .loop/memory/   # ループがいつ何を学んだか
 |------|----------|--------|---------------|
 | `none` | run ごとに 1 つ | なし | なし |
 | `comment` | run ごとに 1 つ | なし | 項目に判定コメントを残す |
-| `draft-pr` | 項目ごとに 1 つ（`loop/<id>`） | feature ブランチのみ | プッシュして `Closes #<id>` 付きの **draft PR** を開く |
+| `draft-pr` | 項目ごとに 1 つ（`loop/<id>`） | feature ブランチのみ | プッシュ後、`config.pr` が `Closes #<id>` 付きの **draft PR** を開く |
 
 loopcraft は issue をクローズしたり、デフォルトブランチへマージしたりすることは決してありません — 人間が draft PR をマージすると、プラットフォームがリンクされた issue を自動的にクローズします。feature ブランチへの push は `draft-pr` モード（オプトイン）でのみ発生し、それ以外のモードは push なしのままです。
 
@@ -258,7 +258,8 @@ loopcraft は issue をクローズしたり、デフォルトブランチへマ
   "report": "bash .loop/adapters/github.sh report",
   "writeback": "draft-pr",
   "base": "main"
-}
+},
+"pr": "bash .loop/adapters/github.sh pr"
 ```
 
 一度きりのラベル（loop-init が作成を提案します）：

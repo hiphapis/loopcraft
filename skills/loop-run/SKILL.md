@@ -71,7 +71,7 @@ Update the item's row in the run journal whenever an item finishes (result: done
 
 For each item, run the `config.backlog.report` command with the env vars below (the core does not know what report does internally):
 - Common: `LOOP_ITEM_ID`, `LOOP_ITEM_REF`, `LOOP_EVENT` (started|verified|escalated), `LOOP_WRITEBACK`
-- verified: + `LOOP_VERDICT`, `LOOP_COMMIT`, `LOOP_BRANCH` (draft-pr also + `LOOP_BASE`)
+- verified: + `LOOP_VERDICT`, `LOOP_COMMIT`, `LOOP_BRANCH` (draft-pr also + `LOOP_BASE`; `report` also receives `LOOP_PR_URL` from `config.pr`)
 - escalated: + `LOOP_NOTE`
 - **Do not pass `title`/`body`.** If `report` fails (non-zero), do **not** fail the item — record "report failed" in the run journal and continue (best-effort).
 
@@ -79,9 +79,9 @@ For each item, run the `config.backlog.report` command with the env vars below (
 |------|--------|------|---------------|
 | `none` | one per run (current) | no | report is not called |
 | `comment` | one per run (current) | no | run `report` after verified/escalated |
-| `draft-pr` | per item `loop/<id>` | feature only | after PASS, `git push -u origin loop/<id>`, then `report` (verified, `LOOP_BRANCH=loop/<id>`, `LOOP_BASE=<base>`) |
+| `draft-pr` | per item `loop/<id>` | feature only | after PASS, `git push -u origin loop/<id>`, run `config.pr` (opens the draft PR → `LOOP_PR_URL`), then `report` (verified, + `LOOP_PR_URL`) |
 
-draft-pr details: branch each item off `config.backlog.base` (or the remote default branch if unset) as `loop/<id>`. Escalated items are not pushed (keep the existing stash-preservation rule).
+draft-pr details: branch each item off `config.backlog.base` (or the remote default branch if unset) as `loop/<id>`. After the push, run **`config.pr`** with `LOOP_ITEM_ID`/`LOOP_BRANCH`/`LOOP_BASE`/`LOOP_VERDICT`; capture its stdout as `LOOP_PR_URL` and pass that to `report`. PR creation is a **code-host** concern kept separate from the task-tracker `report`, so a Jira `report` and a GitHub `config.pr` compose. If `config.pr` is unset, warn and fall back to a comment for that item; if it fails, record it and still run `report` (the branch is pushed, so a human can open the PR). Escalated items are not pushed (keep the existing stash-preservation rule).
 
 ## 3. Run end
 

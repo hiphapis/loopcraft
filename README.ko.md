@@ -233,7 +233,7 @@ git log --oneline -- .loop/memory/   # 루프가 언제 무엇을 배웠는지
 - **file** (기본값) — `docs/project-status.md`의 "Ready to Execute" 절처럼 지정한 문서 섹션.
 - **github** / **jira** / **command** — loopcraft가 설정된 `list`/`report` 커맨드를 실행합니다. 코어는 vendor 도구를 직접 호출하지 않습니다 — 번들된 GitHub 어댑터(`.loop/adapters/github.sh`)가 레퍼런스 구현이며, 다른 provider는 이를 템플릿으로 복사합니다.
 
-`list`는 정규화된 JSON 배열(`id`, `title`, `body`, `ref`, `skip`)을 출력하고, `report`는 `LOOP_*` 환경변수로 결과를 전달받습니다. GitHub 어댑터에서 `skip`은 이슈에 붙은 `loop:manual`(수동 처리 전용, skip) 또는 `loop:blocked`(이전에 escalate됨) 라벨로 설정됩니다.
+`list`는 정규화된 JSON 배열(`id`, `title`, `body`, `ref`, `skip`)을 출력하고, `report`는 `LOOP_*` 환경변수로 결과를 전달받습니다. GitHub 어댑터에서 `skip`은 이슈에 붙은 `loop:manual`(수동 처리 전용, skip) 또는 `loop:blocked`(이전에 escalate됨) 라벨로 설정됩니다. `draft-pr` 모드에서는 별도의 `config.pr` 커맨드(**코드 호스트** 관심사)가 PR을 오픈하므로, `report`는 태스크 트래커 전용으로 유지됩니다 — 이 덕분에 Jira의 `report`와 GitHub의 `pr`을 조합할 수 있습니다.
 
 **Write-back** (`backlog.writeback`, 기본값 `none`):
 
@@ -241,7 +241,7 @@ git log --oneline -- .loop/memory/   # 루프가 언제 무엇을 배웠는지
 |------|----------|--------|---------------|
 | `none` | run당 1개 | 없음 | 없음 |
 | `comment` | run당 1개 | 없음 | 항목에 판정 댓글 작성 |
-| `draft-pr` | 항목당 1개 (`loop/<id>`) | feature 브랜치만 | 푸시 후 `Closes #<id>`가 포함된 **draft PR** 오픈 |
+| `draft-pr` | 항목당 1개 (`loop/<id>`) | feature 브랜치만 | 푸시 후 `config.pr`가 `Closes #<id>`가 포함된 **draft PR** 오픈 |
 
 loopcraft는 이슈를 닫거나 기본 브랜치에 병합하지 않습니다 — 사람이 draft PR을 병합하면 플랫폼이 연결된 이슈를 자동으로 닫습니다. feature 브랜치 푸시는 `draft-pr` 모드(옵트인)에서만 발생하며, 그 외 모든 모드는 푸시 없이 유지됩니다.
 
@@ -258,7 +258,8 @@ loopcraft는 이슈를 닫거나 기본 브랜치에 병합하지 않습니다 �
   "report": "bash .loop/adapters/github.sh report",
   "writeback": "draft-pr",
   "base": "main"
-}
+},
+"pr": "bash .loop/adapters/github.sh pr"
 ```
 
 일회성 라벨(loop-init이 생성을 제안합니다):

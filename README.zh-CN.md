@@ -233,7 +233,7 @@ git log --oneline -- .loop/memory/   # 循环在何时学到了什么
 - **file**（默认）— 你指定的文档章节，例如 `docs/project-status.md` 中的 "Ready to Execute" 一节。
 - **github** / **jira** / **command** — loopcraft 运行你配置的 `list`/`report` 命令。核心从不直接调用 vendor 工具 — 内置的 GitHub 适配器（`.loop/adapters/github.sh`）是参考实现，其他 provider 复制它作为模板。
 
-`list` 输出规范化的 JSON 数组（`id`、`title`、`body`、`ref`、`skip`）；`report` 通过 `LOOP_*` 环境变量接收结果。对于 GitHub 适配器，`skip` 由 issue 上的 `loop:manual`（仅限人工处理，skip）或 `loop:blocked`（此前已 escalate）标签设置。
+`list` 输出规范化的 JSON 数组（`id`、`title`、`body`、`ref`、`skip`）；`report` 通过 `LOOP_*` 环境变量接收结果。对于 GitHub 适配器，`skip` 由 issue 上的 `loop:manual`（仅限人工处理，skip）或 `loop:blocked`（此前已 escalate）标签设置。在 `draft-pr` 模式下，一个独立的 `config.pr` 命令（**代码托管**方面的关注点）负责打开 PR，因此 `report` 只保留任务跟踪职责 — 这样就能让 Jira 的 `report` 与 GitHub 的 `pr` 组合使用。
 
 **Write-back**（`backlog.writeback`，默认 `none`）：
 
@@ -241,7 +241,7 @@ git log --oneline -- .loop/memory/   # 循环在何时学到了什么
 |------|----------|--------|---------------|
 | `none` | 每次运行 1 个 | 无 | 无 |
 | `comment` | 每次运行 1 个 | 无 | 在项目上评论判定结果 |
-| `draft-pr` | 每个项目 1 个（`loop/<id>`） | 仅 feature 分支 | 推送并打开带 `Closes #<id>` 的 **draft PR** |
+| `draft-pr` | 每个项目 1 个（`loop/<id>`） | 仅 feature 分支 | 推送后，`config.pr` 打开带 `Closes #<id>` 的 **draft PR** |
 
 loopcraft 绝不会关闭 issue 或合并到默认分支 — 由人合并 draft PR，平台会自动关闭关联的 issue。仅在 `draft-pr` 模式（opt-in）下才会推送 feature 分支；其他所有模式都保持不推送。
 
@@ -258,7 +258,8 @@ loopcraft 绝不会关闭 issue 或合并到默认分支 — 由人合并 draft 
   "report": "bash .loop/adapters/github.sh report",
   "writeback": "draft-pr",
   "base": "main"
-}
+},
+"pr": "bash .loop/adapters/github.sh pr"
 ```
 
 一次性标签（loop-init 会主动提出帮你创建）：

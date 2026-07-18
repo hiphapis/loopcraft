@@ -552,6 +552,29 @@ adapter_list_fails_when_gh_fails() {
   assert_eq "yes" "$nonzero" "list exits nonzero when gh fails (no empty-backlog masking)"
 }
 
+adapter_pr_creates_draft_with_closes() {
+  local dir bindir cap out
+  dir="$(new_tmp_dir)"; cap="$dir/gh.log"
+  bindir="$(make_bin_stub "$dir" gh 'printf "%s\n" "$*" >> "'"$cap"'"; case "$*" in *"pr create"*) echo "https://gh/pr/1" ;; esac')"
+  out="$(PATH="$bindir:$PATH" LOOP_ITEM_ID=42 LOOP_BRANCH=loop/42 LOOP_BASE=main LOOP_VERDICT=3/3 \
+    bash "$ADAPTER_GH" pr)"
+  assert_contains "$(cat "$cap")" "pr create --draft" "pr subcommand opens a draft PR" &&
+    assert_contains "$(cat "$cap")" "--head loop/42" "pr subcommand uses the item branch" &&
+    assert_contains "$(cat "$cap")" "--base main" "pr subcommand uses the base branch" &&
+    assert_contains "$(cat "$cap")" "Closes #42" "PR body links the issue for auto-close on merge" &&
+    assert_eq "https://gh/pr/1" "$out" "pr subcommand stdout is the PR URL"
+}
+
+adapter_pr_missing_item_id() {
+  local dir bindir cap status
+  dir="$(new_tmp_dir)"; cap="$dir/gh.log"
+  bindir="$(make_bin_stub "$dir" gh 'printf "%s\n" "$*" >> "'"$cap"'"')"
+  PATH="$bindir:$PATH" env -u LOOP_ITEM_ID LOOP_BRANCH=loop/42 LOOP_BASE=main bash "$ADAPTER_GH" pr >/dev/null 2>&1
+  status=$?
+  assert_eq "2" "$status" "pr exits 2 when LOOP_ITEM_ID is missing" &&
+    assert_eq "" "$(cat "$cap" 2>/dev/null)" "pr makes no gh calls when LOOP_ITEM_ID is missing"
+}
+
 adapter_report_comment_only() {
   local dir bindir cap
   dir="$(new_tmp_dir)"; cap="$dir/gh.log"
@@ -563,17 +586,15 @@ adapter_report_comment_only() {
     assert_not_contains "$(cat "$cap")" "pr create" "comment mode does not open a PR"
 }
 
-adapter_report_draft_pr() {
+adapter_report_never_creates_pr() {
   local dir bindir cap
   dir="$(new_tmp_dir)"; cap="$dir/gh.log"
   bindir="$(make_bin_stub "$dir" gh 'printf "%s\n" "$*" >> "'"$cap"'"')"
   PATH="$bindir:$PATH" LOOP_EVENT=verified LOOP_WRITEBACK=draft-pr \
     LOOP_ITEM_ID=42 LOOP_VERDICT=3/3 LOOP_COMMIT=abc123 LOOP_BRANCH=loop/42 LOOP_BASE=main \
     bash "$ADAPTER_GH" report
-  assert_contains "$(cat "$cap")" "pr create --draft" "draft-pr mode opens a draft PR" &&
-    assert_contains "$(cat "$cap")" "--head loop/42" "draft PR uses the item branch" &&
-    assert_contains "$(cat "$cap")" "Closes #42" "PR body links the issue for auto-close on merge" &&
-    assert_contains "$(cat "$cap")" "issue comment 42" "draft-pr mode also comments"
+  assert_contains "$(cat "$cap")" "issue comment 42" "report still comments on the issue" &&
+    assert_not_contains "$(cat "$cap")" "pr create" "report never creates a PR"
 }
 
 adapter_report_escalated() {
@@ -628,6 +649,17 @@ adapter_report_started_is_noop() {
     assert_eq "" "$(cat "$cap" 2>/dev/null)" "started makes no gh calls"
 }
 
+adapter_report_includes_pr_url() {
+  local dir bindir cap
+  dir="$(new_tmp_dir)"; cap="$dir/gh.log"
+  bindir="$(make_bin_stub "$dir" gh 'printf "%s\n" "$*" >> "'"$cap"'"')"
+  PATH="$bindir:$PATH" LOOP_EVENT=verified LOOP_ITEM_ID=42 LOOP_VERDICT=3/3 LOOP_COMMIT=abc \
+    LOOP_BRANCH=loop/42 LOOP_PR_URL=https://gh/pr/1 \
+    bash "$ADAPTER_GH" report
+  assert_contains "$(cat "$cap")" "issue comment 42" "report comments on the issue" &&
+    assert_contains "$(cat "$cap")" "https://gh/pr/1" "report comment includes the PR URL"
+}
+
 backlog_list_command_from_config_yields_contract() {
   local dir bindir cfgcmd out id
   dir="$(new_tmp_dir)"; mkdir -p "$dir/.loop/adapters"
@@ -678,13 +710,16 @@ test_case "pre-compact: LOOP_DISABLE is silent" pre_compact_loop_disable_silent
 test_case "adapter/github: list maps fields and skip label" adapter_list_maps_fields_and_skip
 test_case "adapter/github: list marks loop:blocked as skip" adapter_list_marks_blocked_skip
 test_case "adapter/github: list propagates gh failure" adapter_list_fails_when_gh_fails
+test_case "adapter/github: pr creates draft PR with Closes" adapter_pr_creates_draft_with_closes
+test_case "adapter/github: pr requires LOOP_ITEM_ID" adapter_pr_missing_item_id
 test_case "adapter/github: report comment-only" adapter_report_comment_only
-test_case "adapter/github: report draft-pr opens PR with Closes" adapter_report_draft_pr
+test_case "adapter/github: report never creates a PR (comment only)" adapter_report_never_creates_pr
 test_case "adapter/github: report escalated labels blocked" adapter_report_escalated
 test_case "adapter/github: report surfaces partial gh failure" adapter_report_partial_gh_failure_surfaces
 test_case "adapter/github: report missing LOOP_ITEM_ID exits 2" adapter_report_missing_item_id
 test_case "adapter/github: report unknown LOOP_EVENT exits 2" adapter_report_unknown_event
 test_case "adapter/github: report started is a no-op" adapter_report_started_is_noop
+test_case "adapter/github: report includes PR url when set" adapter_report_includes_pr_url
 test_case "backlog: config list command yields contract" backlog_list_command_from_config_yields_contract
 
 printf '\n%d passed, %d failed\n' "$PASS" "$FAIL"
