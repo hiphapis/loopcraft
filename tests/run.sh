@@ -588,6 +588,17 @@ adapter_report_escalated() {
     assert_not_contains "$(cat "$cap")" "pr create" "escalated does not open a PR"
 }
 
+adapter_report_partial_gh_failure_surfaces() {
+  local dir bindir status nz
+  dir="$(new_tmp_dir)"
+  bindir="$(make_bin_stub "$dir" gh 'case "$*" in *"issue comment"*) exit 1 ;; *) exit 0 ;; esac')"
+  PATH="$bindir:$PATH" LOOP_EVENT=escalated LOOP_ITEM_ID=42 LOOP_NOTE="max retries" \
+    bash "$ADAPTER_GH" report >/dev/null 2>&1
+  status=$?
+  nz=$([ "$status" -ne 0 ] && echo yes || echo no)
+  assert_eq "yes" "$nz" "report surfaces a partial gh failure"
+}
+
 backlog_list_command_from_config_yields_contract() {
   local dir bindir cfgcmd out id
   dir="$(new_tmp_dir)"; mkdir -p "$dir/.loop/adapters"
@@ -641,6 +652,7 @@ test_case "adapter/github: list propagates gh failure" adapter_list_fails_when_g
 test_case "adapter/github: report comment-only" adapter_report_comment_only
 test_case "adapter/github: report draft-pr opens PR with Closes" adapter_report_draft_pr
 test_case "adapter/github: report escalated labels blocked" adapter_report_escalated
+test_case "adapter/github: report surfaces partial gh failure" adapter_report_partial_gh_failure_surfaces
 test_case "backlog: config list command yields contract" backlog_list_command_from_config_yields_contract
 
 printf '\n%d passed, %d failed\n' "$PASS" "$FAIL"

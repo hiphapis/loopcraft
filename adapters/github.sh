@@ -8,24 +8,27 @@ SKIP_LABEL="loop:manual"   # items carrying this label are marked unfit-for-unat
 BLOCKED_LABEL="loop:blocked"
 
 cmd_report() {
-  local id="${LOOP_ITEM_ID:-}" event="${LOOP_EVENT:-}" wb="${LOOP_WRITEBACK:-none}"
+  local id="${LOOP_ITEM_ID:-}" event="${LOOP_EVENT:-}" wb="${LOOP_WRITEBACK:-none}" rc=0
   [ -n "$id" ] || { printf 'report: LOOP_ITEM_ID required\n' >&2; return 2; }
+  # write-back is best-effort, but a partial failure must surface: OR every gh
+  # call's exit status so report returns non-zero if ANY call failed.
   case "$event" in
     verified)
-      gh issue comment "$id" --body "loopcraft: verified ${LOOP_VERDICT:-} · commit ${LOOP_COMMIT:-} · branch ${LOOP_BRANCH:-}"
+      gh issue comment "$id" --body "loopcraft: verified ${LOOP_VERDICT:-} · commit ${LOOP_COMMIT:-} · branch ${LOOP_BRANCH:-}" || rc=$?
       if [ "$wb" = "draft-pr" ]; then
         gh pr create --draft --head "${LOOP_BRANCH:-}" --base "${LOOP_BASE:-}" \
           --title "loopcraft: #$id" \
-          --body "Closes #$id"$'\n\n'"loopcraft verified ${LOOP_VERDICT:-}."
+          --body "Closes #$id"$'\n\n'"loopcraft verified ${LOOP_VERDICT:-}." || rc=$?
       fi
       ;;
     escalated)
-      gh issue comment "$id" --body "loopcraft: escalated — ${LOOP_NOTE:-}"
-      gh issue edit "$id" --add-label "$BLOCKED_LABEL"
+      gh issue comment "$id" --body "loopcraft: escalated — ${LOOP_NOTE:-}" || rc=$?
+      gh issue edit "$id" --add-label "$BLOCKED_LABEL" || rc=$?
       ;;
     started) : ;;
     *) printf 'report: unknown LOOP_EVENT [%s]\n' "$event" >&2; return 2 ;;
   esac
+  return "$rc"
 }
 
 cmd_list() {
