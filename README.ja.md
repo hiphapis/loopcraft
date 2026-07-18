@@ -231,7 +231,7 @@ git log --oneline -- .loop/memory/   # ループがいつ何を学んだか
 自律ランナー（`loop-run`）は、`loop-init` で選択したプラグ可能な **バックログソース** から作業キューを読み込みます：
 
 - **file**（デフォルト）— `docs/project-status.md` の "Ready to Execute" セクションのように指定したドキュメントセクション。
-- **github** / **jira** / **command** — loopcraft が設定された `list`/`report` コマンドを実行します。コアは vendor ツールを直接呼び出しません — バンドルされた GitHub アダプター（`.loop/adapters/github.sh`）がリファレンス実装であり、他の provider はこれをテンプレートとしてコピーします。
+- **github** / **jira** / **command** — loopcraft が設定された `list`/`report` コマンドを実行します。コアは vendor ツールを直接呼び出しません — バンドルされたリファレンスアダプターとして、**GitHub**（`.loop/adapters/github.sh`、`gh` を使用）と **Jira**（`.loop/adapters/jira.sh`、curl + Jira REST；認証は `JIRA_BASE_URL`/`JIRA_EMAIL`/`JIRA_TOKEN`）が提供されており、どちらかをテンプレートとしてコピーできます。Jira ソースはタスクトラッカー専用であり、PR にはコードホストの `config.pr`（例：`github.sh pr`）を組み合わせて使用します。
 
 `list` は正規化された JSON 配列（`id`, `title`, `body`, `ref`, `skip`）を出力し、`report` は `LOOP_*` 環境変数で結果を受け取ります。GitHub アダプターでは、issue に付いた `loop:manual`（手動対応専用、skip）または `loop:blocked`（過去に escalate 済み）ラベルによって `skip` が設定されます。`draft-pr` モードでは、別の `config.pr` コマンド（**コードホスト**の関心事）が PR を開くため、`report` はタスクトラッカー専用のままです — これにより Jira の `report` と GitHub の `pr` を組み合わせられます。
 

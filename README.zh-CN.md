@@ -231,7 +231,7 @@ git log --oneline -- .loop/memory/   # 循环在何时学到了什么
 自主运行器（`loop-run`）从 `loop-init` 时选定的可插拔 **backlog 来源** 中读取工作队列：
 
 - **file**（默认）— 你指定的文档章节，例如 `docs/project-status.md` 中的 "Ready to Execute" 一节。
-- **github** / **jira** / **command** — loopcraft 运行你配置的 `list`/`report` 命令。核心从不直接调用 vendor 工具 — 内置的 GitHub 适配器（`.loop/adapters/github.sh`）是参考实现，其他 provider 复制它作为模板。
+- **github** / **jira** / **command** — loopcraft 运行你配置的 `list`/`report` 命令。核心从不直接调用 vendor 工具 — 内置的参考适配器提供了 **GitHub**（`.loop/adapters/github.sh`，使用 `gh`）和 **Jira**（`.loop/adapters/jira.sh`，curl + Jira REST；通过 `JIRA_BASE_URL`/`JIRA_EMAIL`/`JIRA_TOKEN` 认证），复制其中任意一个作为模板即可。Jira 来源仅限任务跟踪；如需 PR，需搭配代码托管方的 `config.pr`（例如 `github.sh pr`）。
 
 `list` 输出规范化的 JSON 数组（`id`、`title`、`body`、`ref`、`skip`）；`report` 通过 `LOOP_*` 环境变量接收结果。对于 GitHub 适配器，`skip` 由 issue 上的 `loop:manual`（仅限人工处理，skip）或 `loop:blocked`（此前已 escalate）标签设置。在 `draft-pr` 模式下，一个独立的 `config.pr` 命令（**代码托管**方面的关注点）负责打开 PR，因此 `report` 只保留任务跟踪职责 — 这样就能让 Jira 的 `report` 与 GitHub 的 `pr` 组合使用。
 

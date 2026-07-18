@@ -231,7 +231,7 @@ git log --oneline -- .loop/memory/   # what the loop learned, when
 It reads its work queue from a pluggable **backlog source**, chosen during `loop-init`:
 
 - **file** (default) — a document section you designate, e.g. `docs/project-status.md` § "Ready to Execute".
-- **github** / **jira** / **command** — loopcraft runs the `list`/`report` commands you configure. The core never calls vendor tools directly; a bundled GitHub adapter (`.loop/adapters/github.sh`) is the reference implementation, and other providers copy it as a template.
+- **github** / **jira** / **command** — loopcraft runs the `list`/`report` commands you configure. The core never calls vendor tools directly; bundled reference adapters ship for **GitHub** (`.loop/adapters/github.sh`, uses `gh`) and **Jira** (`.loop/adapters/jira.sh`, curl + Jira REST; auth via `JIRA_BASE_URL`/`JIRA_EMAIL`/`JIRA_TOKEN`) — copy either as a template. A Jira source is task-tracker only; pair it with a code-host `config.pr` (e.g. `github.sh pr`) for PRs.
 
 `list` emits a normalized JSON array (`id`, `title`, `body`, `ref`, `skip`); `report` receives the outcome via `LOOP_*` env vars. For the GitHub adapter, `skip` is set by a `loop:manual` (manual-only, skip) or `loop:blocked` (previously escalated) label on the issue. In `draft-pr` mode a separate `config.pr` command (a **code-host** concern) opens the PR, so `report` stays task-tracker-only — that lets a Jira `report` and a GitHub `pr` compose.
 

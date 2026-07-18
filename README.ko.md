@@ -231,7 +231,7 @@ git log --oneline -- .loop/memory/   # 루프가 언제 무엇을 배웠는지
 자율 러너(`loop-run`)는 `loop-init`에서 선택한 플러그블 **backlog 소스**로부터 작업 큐를 읽습니다:
 
 - **file** (기본값) — `docs/project-status.md`의 "Ready to Execute" 절처럼 지정한 문서 섹션.
-- **github** / **jira** / **command** — loopcraft가 설정된 `list`/`report` 커맨드를 실행합니다. 코어는 vendor 도구를 직접 호출하지 않습니다 — 번들된 GitHub 어댑터(`.loop/adapters/github.sh`)가 레퍼런스 구현이며, 다른 provider는 이를 템플릿으로 복사합니다.
+- **github** / **jira** / **command** — loopcraft가 설정된 `list`/`report` 커맨드를 실행합니다. 코어는 vendor 도구를 직접 호출하지 않습니다 — 번들된 레퍼런스 어댑터로 **GitHub**(`.loop/adapters/github.sh`, `gh` 사용)와 **Jira**(`.loop/adapters/jira.sh`, curl + Jira REST; `JIRA_BASE_URL`/`JIRA_EMAIL`/`JIRA_TOKEN`으로 인증)가 제공되며, 둘 중 하나를 템플릿으로 복사해 쓰면 됩니다. Jira 소스는 태스크 트래커 전용이므로, PR을 위해서는 코드 호스트 `config.pr`(예: `github.sh pr`)과 짝지어 사용합니다.
 
 `list`는 정규화된 JSON 배열(`id`, `title`, `body`, `ref`, `skip`)을 출력하고, `report`는 `LOOP_*` 환경변수로 결과를 전달받습니다. GitHub 어댑터에서 `skip`은 이슈에 붙은 `loop:manual`(수동 처리 전용, skip) 또는 `loop:blocked`(이전에 escalate됨) 라벨로 설정됩니다. `draft-pr` 모드에서는 별도의 `config.pr` 커맨드(**코드 호스트** 관심사)가 PR을 오픈하므로, `report`는 태스크 트래커 전용으로 유지됩니다 — 이 덕분에 Jira의 `report`와 GitHub의 `pr`을 조합할 수 있습니다.
 

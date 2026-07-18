@@ -6,6 +6,7 @@ SESSION_START="$ROOT_DIR/hooks/scripts/session-start.sh"
 STOP_GATE="$ROOT_DIR/hooks/scripts/stop-gate.sh"
 PRE_COMPACT="$ROOT_DIR/hooks/scripts/pre-compact.sh"
 ADAPTER_GH="$ROOT_DIR/adapters/github.sh"
+ADAPTER_JIRA="$ROOT_DIR/adapters/jira.sh"
 
 PASS=0
 FAIL=0
@@ -679,6 +680,136 @@ JSON
   assert_eq "9" "$id" "config.backlog.list command yields the normalized contract"
 }
 
+adapter_jira_list_maps_fields_and_skip() {
+  local dir bindir cap fixture out id title body ref skip skip1 skipreason1 nullbody skipreason2
+  dir="$(new_tmp_dir)"; cap="$dir/curl.log"; fixture="$dir/search.json"
+  cat > "$fixture" <<'JSON'
+{
+  "issues": [
+    {"key":"ABC-1","fields":{"summary":"first task","description":"do it","labels":["loop-ready"]}},
+    {"key":"ABC-2","fields":{"summary":"second task","description":null,"labels":["loop-ready","loop-manual"]}},
+    {"key":"ABC-3","fields":{"summary":"third task","description":"do it too","labels":["loop-ready","loop-blocked"]}}
+  ]
+}
+JSON
+  bindir="$(make_bin_stub "$dir" curl 'case "$*" in *"/rest/api/2/search"*) cat "'"$fixture"'" ;; *) printf "%s\n" "$*" >> "'"$cap"'" ;; esac')"
+  out="$(PATH="$bindir:$PATH" JIRA_BASE_URL=https://jira.example JIRA_EMAIL=a@b.c JIRA_TOKEN=t \
+    bash "$ADAPTER_JIRA" list --jql "project = ABC")"
+  id="$(printf '%s' "$out" | jq -r '.[0].id')"
+  title="$(printf '%s' "$out" | jq -r '.[0].title')"
+  body="$(printf '%s' "$out" | jq -r '.[0].body')"
+  ref="$(printf '%s' "$out" | jq -r '.[0].ref')"
+  skip="$(printf '%s' "$out" | jq -r '.[0].skip')"
+  skip1="$(printf '%s' "$out" | jq -r '.[1].skip')"
+  skipreason1="$(printf '%s' "$out" | jq -r '.[1].skipReason')"
+  nullbody="$(printf '%s' "$out" | jq -r '.[1].body')"
+  skipreason2="$(printf '%s' "$out" | jq -r '.[2].skipReason')"
+  assert_eq "ABC-1" "$id" "list maps key→id" &&
+    assert_eq "first task" "$title" "list preserves summary as title" &&
+    assert_eq "do it" "$body" "list preserves description as body" &&
+    assert_eq "https://jira.example/browse/ABC-1" "$ref" "list builds browse ref from base URL and key" &&
+    assert_eq "false" "$skip" "plain ready issue is not skipped" &&
+    assert_eq "true" "$skip1" "loop-manual item is marked skip" &&
+    assert_eq "manual" "$skipreason1" "skip item carries skipReason=manual" &&
+    assert_eq "" "$nullbody" "null description coalesces to empty string" &&
+    assert_eq "blocked" "$skipreason2" "loop-blocked item carries skipReason=blocked"
+}
+
+adapter_jira_report_verified_comment() {
+  local dir bindir cap log
+  dir="$(new_tmp_dir)"; cap="$dir/curl.log"
+  bindir="$(make_bin_stub "$dir" curl 'case "$*" in *"/rest/api/2/search"*) : ;; *) { printf "%s\n" "$*"; cat; printf "\n"; } >> "'"$cap"'" ;; esac')"
+  PATH="$bindir:$PATH" JIRA_BASE_URL=https://jira.example JIRA_EMAIL=a@b.c JIRA_TOKEN=t \
+    LOOP_EVENT=verified LOOP_ITEM_ID=ABC-1 LOOP_PR_URL=https://gh/pr/1 \
+    bash "$ADAPTER_JIRA" report
+  log="$(cat "$cap" 2>/dev/null)"
+  assert_contains "$log" "/rest/api/2/issue/ABC-1/comment" "verified posts a comment on the issue" &&
+    assert_contains "$log" "https://gh/pr/1" "verified comment includes the PR URL" &&
+    assert_not_contains "$log" "-X PUT" "verified does not change labels"
+}
+
+adapter_jira_report_escalated_comment_and_label() {
+  local dir bindir cap log
+  dir="$(new_tmp_dir)"; cap="$dir/curl.log"
+  bindir="$(make_bin_stub "$dir" curl 'case "$*" in *"/rest/api/2/search"*) : ;; *) { printf "%s\n" "$*"; cat; printf "\n"; } >> "'"$cap"'" ;; esac')"
+  PATH="$bindir:$PATH" JIRA_BASE_URL=https://jira.example JIRA_EMAIL=a@b.c JIRA_TOKEN=t \
+    LOOP_EVENT=escalated LOOP_ITEM_ID=ABC-1 LOOP_NOTE="max retries" \
+    bash "$ADAPTER_JIRA" report
+  log="$(cat "$cap" 2>/dev/null)"
+  assert_contains "$log" "/rest/api/2/issue/ABC-1/comment" "escalated posts a comment on the issue" &&
+    assert_contains "$log" "-X PUT" "escalated issues a PUT to update the issue" &&
+    assert_contains "$log" "/rest/api/2/issue/ABC-1" "escalated PUT targets the issue" &&
+    assert_contains "$log" "loop-blocked" "escalated adds the loop-blocked label"
+}
+
+adapter_jira_report_missing_item_id() {
+  local dir bindir cap status
+  dir="$(new_tmp_dir)"; cap="$dir/curl.log"
+  bindir="$(make_bin_stub "$dir" curl 'printf "%s\n" "$*" >> "'"$cap"'"')"
+  PATH="$bindir:$PATH" JIRA_BASE_URL=https://jira.example JIRA_EMAIL=a@b.c JIRA_TOKEN=t \
+    env -u LOOP_ITEM_ID LOOP_EVENT=verified bash "$ADAPTER_JIRA" report >/dev/null 2>&1
+  status=$?
+  assert_eq "2" "$status" "report exits 2 when LOOP_ITEM_ID is missing"
+}
+
+adapter_jira_report_unknown_event() {
+  local dir bindir cap status
+  dir="$(new_tmp_dir)"; cap="$dir/curl.log"
+  bindir="$(make_bin_stub "$dir" curl 'printf "%s\n" "$*" >> "'"$cap"'"')"
+  PATH="$bindir:$PATH" JIRA_BASE_URL=https://jira.example JIRA_EMAIL=a@b.c JIRA_TOKEN=t \
+    LOOP_ITEM_ID=ABC-1 LOOP_EVENT=bogus bash "$ADAPTER_JIRA" report >/dev/null 2>&1
+  status=$?
+  assert_eq "2" "$status" "report exits 2 for unknown LOOP_EVENT"
+}
+
+adapter_jira_missing_env_exits_2() {
+  local dir bindir cap status log
+  dir="$(new_tmp_dir)"; cap="$dir/curl.log"
+  bindir="$(make_bin_stub "$dir" curl 'printf "%s\n" "$*" >> "'"$cap"'"')"
+  PATH="$bindir:$PATH" JIRA_BASE_URL=https://jira.example JIRA_EMAIL=a@b.c \
+    env -u JIRA_TOKEN bash "$ADAPTER_JIRA" list --jql "project = ABC" >/dev/null 2>&1
+  status=$?
+  log="$(cat "$cap" 2>/dev/null)"
+  assert_eq "2" "$status" "list exits 2 when JIRA_TOKEN is missing" &&
+    assert_eq "" "$log" "list makes no curl calls when JIRA env is incomplete"
+}
+
+adapter_jira_report_started_is_noop() {
+  local dir bindir cap status
+  dir="$(new_tmp_dir)"; cap="$dir/curl.log"
+  bindir="$(make_bin_stub "$dir" curl 'printf "%s\n" "$*" >> "'"$cap"'"')"
+  PATH="$bindir:$PATH" JIRA_BASE_URL=https://jira.example JIRA_EMAIL=a@b.c JIRA_TOKEN=t \
+    LOOP_ITEM_ID=ABC-1 LOOP_EVENT=started bash "$ADAPTER_JIRA" report >/dev/null 2>&1
+  status=$?
+  assert_eq "0" "$status" "report exits 0 for started event" &&
+    assert_eq "" "$(cat "$cap" 2>/dev/null)" "started makes no curl calls"
+}
+
+adapter_jira_report_partial_failure_surfaces() {
+  local dir bindir status nz
+  dir="$(new_tmp_dir)"
+  bindir="$(make_bin_stub "$dir" curl 'case "$*" in *"/comment"*) exit 1 ;; *) exit 0 ;; esac')"
+  PATH="$bindir:$PATH" JIRA_BASE_URL=https://jira.example JIRA_EMAIL=a@b.c JIRA_TOKEN=t \
+    LOOP_EVENT=escalated LOOP_ITEM_ID=ABC-1 LOOP_NOTE=x \
+    bash "$ADAPTER_JIRA" report >/dev/null 2>&1
+  status=$?
+  nz=$([ "$status" -ne 0 ] && echo yes || echo no)
+  assert_eq "yes" "$nz" "report surfaces a partial curl failure (comment POST fails, label PUT succeeds)"
+}
+
+adapter_jira_report_missing_env_exits_2() {
+  local dir bindir cap status log
+  dir="$(new_tmp_dir)"; cap="$dir/curl.log"
+  bindir="$(make_bin_stub "$dir" curl 'printf "%s\n" "$*" >> "'"$cap"'"')"
+  PATH="$bindir:$PATH" JIRA_BASE_URL=https://jira.example JIRA_EMAIL=a@b.c \
+    LOOP_EVENT=verified LOOP_ITEM_ID=ABC-1 \
+    env -u JIRA_TOKEN bash "$ADAPTER_JIRA" report >/dev/null 2>&1
+  status=$?
+  log="$(cat "$cap" 2>/dev/null)"
+  assert_eq "2" "$status" "report exits 2 when JIRA_TOKEN is missing" &&
+    assert_eq "" "$log" "report makes no curl calls when JIRA env is incomplete"
+}
+
 test_case "session-start: no .loop/memory is silent" session_start_no_memory
 test_case "session-start: LOOP_DISABLE is silent" session_start_loop_disable
 test_case "session-start: INDEX and STATE are included" session_start_includes_index_and_state
@@ -721,6 +852,15 @@ test_case "adapter/github: report unknown LOOP_EVENT exits 2" adapter_report_unk
 test_case "adapter/github: report started is a no-op" adapter_report_started_is_noop
 test_case "adapter/github: report includes PR url when set" adapter_report_includes_pr_url
 test_case "backlog: config list command yields contract" backlog_list_command_from_config_yields_contract
+test_case "adapter/jira: list maps fields and skip labels" adapter_jira_list_maps_fields_and_skip
+test_case "adapter/jira: report verified posts a comment" adapter_jira_report_verified_comment
+test_case "adapter/jira: report escalated comments and labels blocked" adapter_jira_report_escalated_comment_and_label
+test_case "adapter/jira: report missing LOOP_ITEM_ID exits 2" adapter_jira_report_missing_item_id
+test_case "adapter/jira: report unknown LOOP_EVENT exits 2" adapter_jira_report_unknown_event
+test_case "adapter/jira: missing JIRA env exits 2" adapter_jira_missing_env_exits_2
+test_case "adapter/jira: report started is a no-op" adapter_jira_report_started_is_noop
+test_case "adapter/jira: report partial failure surfaces" adapter_jira_report_partial_failure_surfaces
+test_case "adapter/jira: report missing env exits 2" adapter_jira_report_missing_env_exits_2
 
 printf '\n%d passed, %d failed\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]
