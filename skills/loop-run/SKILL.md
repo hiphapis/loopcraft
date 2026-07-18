@@ -1,7 +1,7 @@
 ---
 name: loop-run
 description: Traverses the backlog unattended, applying the loop-task cycle (rubric · verifier · gate · Loop-Verified commit) to each item. Invoke only when the user explicitly starts an autonomous batch run — for individual work, use loop-task directly.
-argument-hint: "[max items (default 3)]"
+argument-hint: "[max items (default 3), or a target selector e.g. #123]"
 ---
 
 # Loop-Run — autonomous backlog runner
@@ -16,7 +16,7 @@ If `.loop/config.json` does not exist, stop and point to `/loopcraft:loop-init`.
 - Per-item retries follow the loop-task rule (maxRetries), and **if `autonomy.maxConsecutiveFails`
   (default 2) items are escalated in a row, stop the whole runner** (likely an environment problem —
   keep running and you just pile up the same failure).
-- Cap on items processed: the argument (default 3). Terminate normally when the cap is reached.
+- Cap on items processed: an **integer** argument (default 3) → count mode. A **non-integer** argument (e.g. `#123`, an issue key) is a **target selector** → see "Target mode" below. Terminate normally when the cap is reached.
 
 ## 0. Run start
 
@@ -30,6 +30,15 @@ If `.loop/config.json` does not exist, stop and point to `/loopcraft:loop-init`.
    ```
 
 ## 1. Triage the items
+
+### Target mode (`/loop-run <selector>`)
+
+If the argument is **not an integer** (e.g. `#123`, an issue key), it's a **target selector** — process just that one item instead of the queue:
+- Fetch it with `config.backlog.get <selector>` → one normalized item `{id, …, ready}`. If `config.backlog.get` is unset, fall back to filtering `config.backlog.list` output by id (loop:ready-only); if it's not found there, tell the user that targeting an arbitrary item needs `config.backlog.get`.
+- **If `ready` is false** (not loop:ready — a skip label, or the ready label is missing), **ask the user**: "#<id> isn't loop:ready (reason: …). Proceed anyway?" and honor the answer. Target mode is interactive (the user typed the selector), so asking here is allowed — unlike the unattended count mode, which per the safety contract never asks.
+- Then run that single item through §2 (loop-task cycle + write-back), and skip the count-mode triage/queue below.
+
+An **integer** argument (or none) uses count mode — read and triage the queue:
 
 ### Reading the backlog (by source)
 

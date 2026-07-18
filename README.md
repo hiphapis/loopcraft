@@ -228,6 +228,8 @@ git log --oneline -- .loop/memory/   # what the loop learned, when
 
 `loop-run` iterates a backlog unattended, applying the `loop-task` cycle to each item. Two knobs make it fit your setup — the **backlog source** it pulls work from, and the **write-back** it does with each result.
 
+**Targeting one item.** A bare number (`/loop-run 3`) is the item cap for a queue run; a selector (`/loop-run #123`, or a Jira key) runs just that one item through the full cycle. It fetches the item via `config.backlog.get` — and if the item isn't `loop:ready`, it asks before proceeding (target mode is interactive).
+
 It reads its work queue from a pluggable **backlog source**, chosen during `loop-init`:
 
 - **file** (default) — a document section you designate, e.g. `docs/project-status.md` § "Ready to Execute".

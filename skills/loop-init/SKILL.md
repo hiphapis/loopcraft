@@ -30,7 +30,7 @@ help rewrite it into a verifiable form.
 **Q1. "Where should the autonomous runner (loop-run) read and manage tasks from?"** (intent)
 - **file** — manage tasks in one project document (file + section); confirm which file/section next (e.g. "Ready to Execute" in `docs/project-status.md`). *Separate from STATE.md* — that's the session-handoff note. → don't write `source` (= file); write `file`/`section`.
 - **GitHub Issue** — manage tasks as issues in this project's GitHub repo. loopcraft uses dedicated labels (`loop:ready`/`loop:blocked`) so they don't mix with existing tickets. → GitHub scaffolding below.
-- **Jira** — manage tasks in Jira via the bundled `adapters/jira.sh` (curl + Jira REST). Copy it to `.loop/adapters/`, and set `JIRA_BASE_URL`/`JIRA_EMAIL`/`JIRA_TOKEN` (API token) in the environment. → `source: "jira"`, `list: "bash .loop/adapters/jira.sh list --jql '…'"`, `report: "bash .loop/adapters/jira.sh report"`; if code lives on a git host, also set `pr` (e.g. `bash .loop/adapters/github.sh pr`). Jira is task-tracker only — PR creation is the code-host's `config.pr`.
+- **Jira** — manage tasks in Jira via the bundled `adapters/jira.sh` (curl + Jira REST). Copy it to `.loop/adapters/`, and set `JIRA_BASE_URL`/`JIRA_EMAIL`/`JIRA_TOKEN` (API token) in the environment. → `source: "jira"`, `list: "bash .loop/adapters/jira.sh list --jql '…'"`, `get: "bash .loop/adapters/jira.sh get"`, `report: "bash .loop/adapters/jira.sh report"`; if code lives on a git host, also set `pr` (e.g. `bash .loop/adapters/github.sh pr`). Jira is task-tracker only — PR creation is the code-host's `config.pr`.
 - **direct command** — specify arbitrary `list`/`report` commands. → `source: "command"` + commands.
 
 **GitHub scaffolding (when GitHub is chosen):**
@@ -38,7 +38,7 @@ help rewrite it into a verifiable form.
 2. Copy `adapters/github.sh` to the project's `.loop/adapters/github.sh` (project-owned, editable).
 3. Check `gh auth status` — if not authenticated, point to `gh auth login` (continue scaffolding but warn).
 4. Check that the `loop:ready`, `loop:manual`, and `loop:blocked` labels exist; if not, propose creating them (`gh label create`). `loop:manual` marks an issue as unfit-for-unattended (needs manual handling) → skip.
-5. Write to config: `source: "github"`, `list: "bash .loop/adapters/github.sh list --label loop:ready"`, `report: "bash .loop/adapters/github.sh report"`.
+5. Write to config: `source: "github"`, `list: "bash .loop/adapters/github.sh list --label loop:ready"`, `get: "bash .loop/adapters/github.sh get"` (enables `/loop-run #123` target mode), `report: "bash .loop/adapters/github.sh report"`.
 
 **Q2. "How should completion be handled?"** (intent) — apply the gating below:
 - **none** — do nothing.

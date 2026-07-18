@@ -6,12 +6,35 @@ set -uo pipefail
 
 MANUAL_LABEL="loop-manual"
 BLOCKED_LABEL="loop-blocked"
+READY_LABEL="loop-ready"   # queue-ready marker (used by `get` to compute `ready`)
 
 need_env() {
   { [ -n "${JIRA_BASE_URL:-}" ] && [ -n "${JIRA_EMAIL:-}" ] && [ -n "${JIRA_TOKEN:-}" ]; } || {
     printf 'jira: set JIRA_BASE_URL, JIRA_EMAIL, JIRA_TOKEN\n' >&2
     return 2
   }
+}
+
+# Fetch ONE issue by key (any issue) → normalized item + `ready`. Used by loop-run's target mode.
+cmd_get() {
+  need_env || return $?
+  local key="${1:-}"
+  [ -n "$key" ] || { printf 'get: issue key required\n' >&2; return 2; }
+  curl -sf -u "$JIRA_EMAIL:$JIRA_TOKEN" \
+    "$JIRA_BASE_URL/rest/api/2/issue/$key?fields=summary,description,labels" \
+  | jq --arg base "$JIRA_BASE_URL" --arg manual "$MANUAL_LABEL" --arg blocked "$BLOCKED_LABEL" --arg ready "$READY_LABEL" '
+      (any(.fields.labels[]?; . == $manual)) as $m
+      | (any(.fields.labels[]?; . == $blocked)) as $b
+      | (any(.fields.labels[]?; . == $ready)) as $r
+      | {
+          id: .key,
+          title: .fields.summary,
+          body: (.fields.description // ""),
+          ref: ($base + "/browse/" + .key),
+          skip: ($m or $b),
+          skipReason: (if $m then "manual" elif $b then "blocked" else "" end),
+          ready: ($r and (($m or $b) | not))
+        }'
 }
 
 cmd_list() {
@@ -79,8 +102,9 @@ main() {
   local sub="${1:-}"; shift || true
   case "$sub" in
     list) cmd_list "$@" ;;
+    get) cmd_get "$@" ;;
     report) cmd_report "$@" ;;
-    *) printf 'usage: jira.sh {list|report}\n' >&2; exit 2 ;;
+    *) printf 'usage: jira.sh {list|get|report}\n' >&2; exit 2 ;;
   esac
 }
 

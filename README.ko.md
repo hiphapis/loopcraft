@@ -228,6 +228,8 @@ git log --oneline -- .loop/memory/   # 루프가 언제 무엇을 배웠는지
 
 `loop-run`은 backlog를 무인으로 순회하며 각 항목에 `loop-task` 사이클을 적용합니다. 두 가지 설정이 당신의 환경에 맞춰줍니다 — 작업을 가져오는 **backlog 소스**와, 각 결과에 대해 수행하는 **write-back**입니다.
 
+**단일 항목 지정.** 단순 숫자(`/loop-run 3`)는 큐 실행의 항목 개수 상한이고, 셀렉터(`/loop-run #123` 또는 Jira 키)는 해당 항목 하나만 전체 사이클로 실행합니다. `config.backlog.get`으로 항목을 가져오며 — 항목이 `loop:ready`가 아니면 진행 전에 확인을 구합니다(타겟 모드는 대화형입니다).
+
 자율 러너(`loop-run`)는 `loop-init`에서 선택한 플러그블 **backlog 소스**로부터 작업 큐를 읽습니다:
 
 - **file** (기본값) — `docs/project-status.md`의 "Ready to Execute" 절처럼 지정한 문서 섹션.

@@ -6,6 +6,7 @@ set -uo pipefail
 
 SKIP_LABEL="loop:manual"   # items carrying this label are marked unfit-for-unattended (skip)
 BLOCKED_LABEL="loop:blocked"
+READY_LABEL="loop:ready"   # queue-ready marker (used by `get` to compute `ready`)
 
 cmd_report() {
   local id="${LOOP_ITEM_ID:-}" event="${LOOP_EVENT:-}" rc=0
@@ -38,6 +39,27 @@ cmd_pr() {
     --body "Closes #$id"$'\n\n'"loopcraft verified ${LOOP_VERDICT:-}."
 }
 
+# Fetch ONE issue by number (any issue, regardless of label) → normalized item + `ready`.
+# Used by loop-run's target mode (`/loop-run #<id>`).
+cmd_get() {
+  local id="${1:-}"
+  [ -n "$id" ] || { printf 'get: issue id required\n' >&2; return 2; }
+  gh issue view "$id" --json number,title,body,url,labels \
+  | jq --arg skip "$SKIP_LABEL" --arg blocked "$BLOCKED_LABEL" --arg ready "$READY_LABEL" '
+      (any(.labels[]?; .name == $skip)) as $manual
+      | (any(.labels[]?; .name == $blocked)) as $isblocked
+      | (any(.labels[]?; .name == $ready)) as $isready
+      | {
+          id: (.number|tostring),
+          title: .title,
+          body: (.body // ""),
+          ref: .url,
+          skip: ($manual or $isblocked),
+          skipReason: (if $manual then "manual" elif $isblocked then "blocked" else "" end),
+          ready: ($isready and (($manual or $isblocked) | not))
+        }'
+}
+
 cmd_list() {
   local label=""
   while [ $# -gt 0 ]; do
@@ -65,9 +87,10 @@ main() {
   local sub="${1:-}"; shift || true
   case "$sub" in
     list) cmd_list "$@" ;;
+    get) cmd_get "$@" ;;
     report) cmd_report "$@" ;;
     pr) cmd_pr "$@" ;;
-    *) printf 'usage: github.sh {list|report|pr}\n' >&2; exit 2 ;;
+    *) printf 'usage: github.sh {list|get|report|pr}\n' >&2; exit 2 ;;
   esac
 }
 

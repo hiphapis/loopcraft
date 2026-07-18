@@ -810,6 +810,132 @@ adapter_jira_report_missing_env_exits_2() {
     assert_eq "" "$log" "report makes no curl calls when JIRA env is incomplete"
 }
 
+adapter_github_get_ready_true() {
+  local dir bindir cap fixture out id title body ref skip ready
+  dir="$(new_tmp_dir)"; cap="$dir/gh.log"; fixture="$dir/issue.json"
+  cat > "$fixture" <<'JSON'
+{"number":42,"title":"fix login","body":"do it","url":"https://gh/issues/42","labels":[{"name":"loop:ready"}]}
+JSON
+  bindir="$(make_bin_stub "$dir" gh 'printf "%s\n" "$*" >> "'"$cap"'"; cat "'"$fixture"'"')"
+  out="$(PATH="$bindir:$PATH" bash "$ADAPTER_GH" get 42)"
+  id="$(printf '%s' "$out" | jq -r '.id')"
+  title="$(printf '%s' "$out" | jq -r '.title')"
+  body="$(printf '%s' "$out" | jq -r '.body')"
+  ref="$(printf '%s' "$out" | jq -r '.ref')"
+  skip="$(printf '%s' "$out" | jq -r '.skip')"
+  ready="$(printf '%s' "$out" | jq -r '.ready')"
+  assert_eq "42" "$id" "get maps number→id (as string)" &&
+    assert_eq "fix login" "$title" "get preserves title" &&
+    assert_eq "do it" "$body" "get preserves body" &&
+    assert_eq "https://gh/issues/42" "$ref" "get maps url→ref" &&
+    assert_eq "false" "$skip" "loop:ready-only issue is not skipped" &&
+    assert_eq "true" "$ready" "loop:ready label marks ready true" &&
+    assert_contains "$(cat "$cap")" "issue view 42" "get calls gh issue view with the id" &&
+    assert_contains "$(cat "$cap")" "--json number,title,body,url,labels" "get requests the required fields"
+}
+
+adapter_github_get_skip_manual_not_ready() {
+  local dir bindir fixture out skip skipreason ready
+  dir="$(new_tmp_dir)"; fixture="$dir/issue.json"
+  cat > "$fixture" <<'JSON'
+{"number":7,"title":"manual QA","body":"x","url":"https://gh/issues/7","labels":[{"name":"loop:ready"},{"name":"loop:manual"}]}
+JSON
+  bindir="$(make_bin_stub "$dir" gh 'cat "'"$fixture"'"')"
+  out="$(PATH="$bindir:$PATH" bash "$ADAPTER_GH" get 7)"
+  skip="$(printf '%s' "$out" | jq -r '.skip')"
+  skipreason="$(printf '%s' "$out" | jq -r '.skipReason')"
+  ready="$(printf '%s' "$out" | jq -r '.ready')"
+  assert_eq "true" "$skip" "loop:manual item is marked skip" &&
+    assert_eq "manual" "$skipreason" "skip item carries skipReason=manual" &&
+    assert_eq "false" "$ready" "a skipped item is never ready even with loop:ready"
+}
+
+adapter_github_get_not_ready_missing_label() {
+  local dir bindir fixture out skip ready
+  dir="$(new_tmp_dir)"; fixture="$dir/issue.json"
+  cat > "$fixture" <<'JSON'
+{"number":11,"title":"no labels","body":"x","url":"https://gh/issues/11","labels":[]}
+JSON
+  bindir="$(make_bin_stub "$dir" gh 'cat "'"$fixture"'"')"
+  out="$(PATH="$bindir:$PATH" bash "$ADAPTER_GH" get 11)"
+  skip="$(printf '%s' "$out" | jq -r '.skip')"
+  ready="$(printf '%s' "$out" | jq -r '.ready')"
+  assert_eq "false" "$skip" "issue without loop labels is not skipped" &&
+    assert_eq "false" "$ready" "issue without loop:ready label is not ready"
+}
+
+adapter_github_get_missing_id_exits_2() {
+  local dir bindir cap status
+  dir="$(new_tmp_dir)"; cap="$dir/gh.log"
+  bindir="$(make_bin_stub "$dir" gh 'printf "%s\n" "$*" >> "'"$cap"'"')"
+  PATH="$bindir:$PATH" bash "$ADAPTER_GH" get >/dev/null 2>&1
+  status=$?
+  assert_eq "2" "$status" "get exits 2 when id is missing" &&
+    assert_eq "" "$(cat "$cap" 2>/dev/null)" "get makes no gh calls when id is missing"
+}
+
+adapter_github_get_not_found_nonzero() {
+  local dir bindir status nz
+  dir="$(new_tmp_dir)"
+  bindir="$(make_bin_stub "$dir" gh 'case "$*" in *"issue view"*) exit 1 ;; *) exit 0 ;; esac')"
+  PATH="$bindir:$PATH" bash "$ADAPTER_GH" get 999 >/dev/null 2>&1
+  status=$?
+  nz=$([ "$status" -ne 0 ] && echo yes || echo no)
+  assert_eq "yes" "$nz" "get exits nonzero when gh issue view fails (issue not found)"
+}
+
+adapter_jira_get_ready_true() {
+  local dir bindir fixture out id title body ref skip ready
+  dir="$(new_tmp_dir)"; fixture="$dir/issue.json"
+  cat > "$fixture" <<'JSON'
+{"key":"ABC-1","fields":{"summary":"first task","description":"do it","labels":["loop-ready"]}}
+JSON
+  bindir="$(make_bin_stub "$dir" curl 'case "$*" in *"/rest/api/2/issue/ABC-1"*) cat "'"$fixture"'" ;; esac')"
+  out="$(PATH="$bindir:$PATH" JIRA_BASE_URL=https://jira.example JIRA_EMAIL=a@b.c JIRA_TOKEN=t \
+    bash "$ADAPTER_JIRA" get ABC-1)"
+  id="$(printf '%s' "$out" | jq -r '.id')"
+  title="$(printf '%s' "$out" | jq -r '.title')"
+  body="$(printf '%s' "$out" | jq -r '.body')"
+  ref="$(printf '%s' "$out" | jq -r '.ref')"
+  skip="$(printf '%s' "$out" | jq -r '.skip')"
+  ready="$(printf '%s' "$out" | jq -r '.ready')"
+  assert_eq "ABC-1" "$id" "get maps key→id" &&
+    assert_eq "first task" "$title" "get preserves summary as title" &&
+    assert_eq "do it" "$body" "get preserves description as body" &&
+    assert_eq "https://jira.example/browse/ABC-1" "$ref" "get builds browse ref from base URL and key" &&
+    assert_eq "false" "$skip" "loop-ready-only issue is not skipped" &&
+    assert_eq "true" "$ready" "loop-ready label marks ready true"
+}
+
+adapter_jira_get_skip_blocked_not_ready() {
+  local dir bindir fixture out skip skipreason ready
+  dir="$(new_tmp_dir)"; fixture="$dir/issue.json"
+  cat > "$fixture" <<'JSON'
+{"key":"ABC-3","fields":{"summary":"third task","description":"x","labels":["loop-ready","loop-blocked"]}}
+JSON
+  bindir="$(make_bin_stub "$dir" curl 'case "$*" in *"/rest/api/2/issue/ABC-3"*) cat "'"$fixture"'" ;; esac')"
+  out="$(PATH="$bindir:$PATH" JIRA_BASE_URL=https://jira.example JIRA_EMAIL=a@b.c JIRA_TOKEN=t \
+    bash "$ADAPTER_JIRA" get ABC-3)"
+  skip="$(printf '%s' "$out" | jq -r '.skip')"
+  skipreason="$(printf '%s' "$out" | jq -r '.skipReason')"
+  ready="$(printf '%s' "$out" | jq -r '.ready')"
+  assert_eq "true" "$skip" "loop-blocked item is marked skip" &&
+    assert_eq "blocked" "$skipreason" "skip item carries skipReason=blocked" &&
+    assert_eq "false" "$ready" "a skipped item is never ready even with loop-ready"
+}
+
+adapter_jira_get_missing_key_exits_2() {
+  local dir bindir cap status log
+  dir="$(new_tmp_dir)"; cap="$dir/curl.log"
+  bindir="$(make_bin_stub "$dir" curl 'printf "%s\n" "$*" >> "'"$cap"'"')"
+  PATH="$bindir:$PATH" JIRA_BASE_URL=https://jira.example JIRA_EMAIL=a@b.c JIRA_TOKEN=t \
+    bash "$ADAPTER_JIRA" get >/dev/null 2>&1
+  status=$?
+  log="$(cat "$cap" 2>/dev/null)"
+  assert_eq "2" "$status" "get exits 2 when key is missing" &&
+    assert_eq "" "$log" "get makes no curl calls when key is missing"
+}
+
 test_case "session-start: no .loop/memory is silent" session_start_no_memory
 test_case "session-start: LOOP_DISABLE is silent" session_start_loop_disable
 test_case "session-start: INDEX and STATE are included" session_start_includes_index_and_state
@@ -861,6 +987,14 @@ test_case "adapter/jira: missing JIRA env exits 2" adapter_jira_missing_env_exit
 test_case "adapter/jira: report started is a no-op" adapter_jira_report_started_is_noop
 test_case "adapter/jira: report partial failure surfaces" adapter_jira_report_partial_failure_surfaces
 test_case "adapter/jira: report missing env exits 2" adapter_jira_report_missing_env_exits_2
+test_case "adapter/github: get ready issue" adapter_github_get_ready_true
+test_case "adapter/github: get marks loop:manual as skip and not ready" adapter_github_get_skip_manual_not_ready
+test_case "adapter/github: get not ready when loop:ready label missing" adapter_github_get_not_ready_missing_label
+test_case "adapter/github: get missing id exits 2" adapter_github_get_missing_id_exits_2
+test_case "adapter/github: get exits nonzero when issue not found" adapter_github_get_not_found_nonzero
+test_case "adapter/jira: get ready issue" adapter_jira_get_ready_true
+test_case "adapter/jira: get marks loop-blocked as skip and not ready" adapter_jira_get_skip_blocked_not_ready
+test_case "adapter/jira: get missing key exits 2" adapter_jira_get_missing_key_exits_2
 
 printf '\n%d passed, %d failed\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]

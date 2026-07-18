@@ -228,6 +228,8 @@ git log --oneline -- .loop/memory/   # 循环在何时学到了什么
 
 `loop-run` 无人值守地遍历 backlog，对每一项应用 `loop-task` 循环。两个旋钮让它贴合你的环境 — 它从哪里拉取工作的 **backlog 来源**，以及对每个结果执行的 **write-back**。
 
+**指定单个项目。** 裸数字（`/loop-run 3`）是队列运行的项目数上限；选择器（`/loop-run #123`，或 Jira key）只把这一个项目跑完整个循环。它通过 `config.backlog.get` 获取该项目 — 如果该项目不是 `loop:ready`，会在继续前询问确认（目标模式是交互式的）。
+
 自主运行器（`loop-run`）从 `loop-init` 时选定的可插拔 **backlog 来源** 中读取工作队列：
 
 - **file**（默认）— 你指定的文档章节，例如 `docs/project-status.md` 中的 "Ready to Execute" 一节。
